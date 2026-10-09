@@ -26,4 +26,7 @@ Tugas Member:
 ![alt text](image-1.png)
 
 3. Bukti konfirmasi Wahyu Ramdani
+- clone project
+- bukti konfirmasi khajizatu sidqiyah
+
 4. Bukti konfirmasi Faqih Huddin SM
