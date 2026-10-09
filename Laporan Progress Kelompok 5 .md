@@ -15,3 +15,18 @@
 
 3. pm membuat inisiasi proyek
 4. konfirmasi bukti
+
+
+Tugas Member:
+1. Accept invite
+2. Bukti Konfirmasi Khajizatu Sidqiyah
+![alt text](<buktiJijah.jpeg>)
+- clone project
+- bukti konfirmasi khajizatu sidqiyah
+![alt text](image-1.png)
+
+3. Bukti konfirmasi Wahyu Ramdani
+- clone project
+- bukti konfirmasi khajizatu sidqiyah
+
+4. Bukti konfirmasi Faqih Huddin SM
