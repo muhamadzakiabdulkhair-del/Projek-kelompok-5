@@ -19,8 +19,16 @@
 
 Tugas Member:
 1. Accept invite
-2. Bukti Konfirmasi Khajizatu Sidqiyah
+2. Bukti Konfirmasi
+
+Khajizatu Sidqiyah
+
 ![alt text](<buktiJijah.jpeg>)
+
+Wahyu Ramdhani
+
+![alt text](<bukti_Invited_wahyu.jpeg>)
+
 - clone project
 - bukti konfirmasi khajizatu sidqiyah
 ![alt text](image-1.png)
