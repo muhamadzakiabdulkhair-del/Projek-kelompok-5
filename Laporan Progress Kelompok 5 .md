@@ -2,10 +2,10 @@
 
 ## Anggota Kelompok
 
-1. Wahyu Ramdhani
-2. Khajizatu Sidqiyah
-3. Muhamad Zaki Abdul Khair
-4. Faqih huddin SM
+1. Wahyu Ramdhani (2488010037)
+2. Khajizatu Sidqiyah (2488010044)
+3. Muhamad Zaki Abdul Khair (2488010053)
+4. Faqih huddin SM (2488010061)
 
 ## PROGRESS 1 : pertemuan 5
 
