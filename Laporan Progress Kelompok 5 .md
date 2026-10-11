@@ -16,17 +16,28 @@
 3. pm membuat inisiasi proyek
 4. konfirmasi bukti
 
-
 Tugas Member:
+
 1. Accept invite
 2. Bukti Konfirmasi Khajizatu Sidqiyah
-![alt text](<buktiJijah.jpeg>)
+   ![alt text](buktiJijah.jpeg)
+
 - clone project
 - bukti konfirmasi khajizatu sidqiyah
-![alt text](image-1.png)
+  ![alt text](image-1.png)
 
 3. Bukti konfirmasi Wahyu Ramdani
+
 - clone project
 - bukti konfirmasi khajizatu sidqiyah
 
 4. Bukti konfirmasi Faqih Huddin SM
+
+### Progress 1: Pertemuan 5
+
+1. PM membuat repository dan invite member
+2. Konfirmasi Bukti -> ss bagian colaborators
+3. PM membuat inisiasi Proyek
+4. Konfirmasi bukti
+   buka terminal, ketik npx create-expo-app@latest lalu isi nama proyeknya (misal kelompok6) dan enter. jika sudah selesai masuk ke cd kelompok6 -> npm run web
+   WAJIB BAGI PM/mirorring dari hp pun bolehhh: install bluestacks 5 -> buka lalu login gmail -> search expo go dan install -> buka lalu copy bagian metro dari vscode dan paste di bagian url di expo go -> record utk konfirmasi bukti (convert videonya jadi gif)
