@@ -19,8 +19,17 @@
 Tugas Member:
 
 1. Accept invite
+<<<<<<< HEAD
+2. Bukti Konfirmasi
+
+Khajizatu Sidqiyah
+
+![alt text](buktiJijah.jpeg)
+
+=======
 2. Bukti Konfirmasi Khajizatu Sidqiyah
    ![alt text](buktiJijah.jpeg)
+>>>>>>> 53dc046ca84b18683d2f6ddf2c970a4864ede2da
 
 - clone project
 - bukti konfirmasi khajizatu sidqiyah
@@ -35,7 +44,13 @@ Tugas Member:
 - clone project
 - bukti konfirmasi Wahyu Ramdani
 
+![alt text](bukti_Invited_wahyu.jpeg)
+
 4. Bukti konfirmasi Faqih Huddin SM
+
+- clone project
+- bukti konfirmasi Faqih Huddin SM
+
 <<<<<<< HEAD
 
 ### Progress 1: Pertemuan 5
@@ -46,9 +61,10 @@ Tugas Member:
 4. Konfirmasi bukti
    buka terminal, ketik npx create-expo-app@latest lalu isi nama proyeknya (misal kelompok6) dan enter. jika sudah selesai masuk ke cd kelompok6 -> npm run web
    WAJIB BAGI PM/mirorring dari hp pun bolehhh: install bluestacks 5 -> buka lalu login gmail -> search expo go dan install -> buka lalu copy bagian metro dari vscode dan paste di bagian url di expo go -> record utk konfirmasi bukti (convert videonya jadi gif)
+
+   ![alt text](gif-kel-5.gif)
 =======
-- clone project
-- bukti konfirmasi Faqih Huddin SM
+
 
 ## Tugas Bersama: ##
 1. Diskusi Penentuan Tema (notulen diskusi)
