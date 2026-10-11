@@ -11,30 +11,38 @@
 
 1. pm membuat repository dan invite member
 2. konfirmasi bukti colab
+
    ![alt text](image.png)
 
 3. pm membuat inisiasi proyek
 4. konfirmasi bukti
+
 ![alt text](gif-kel-5.gif)
 
 Tugas Member:
 
 1. Accept invite
 2. Bukti Konfirmasi Khajizatu Sidqiyah
+
    ![alt text](buktiJijah.jpeg)
 - clone project
 - bukti konfirmasi khajizatu sidqiyah
+
 ![alt text](img_jijah.png)
 
 3. Bukti konfirmasi Wahyu Ramdani
 - clone project
 - bukti konfirmasi Wahyu Ramdani
+
 ![alt text](bukti_Invited_wahyu.jpeg)
 
 4. Bukti konfirmasi Faqih Huddin SM
-
-- clone project
-- bukti konfirmasi Faqih Huddin SM
+  
+      ![alt text](image-1.png)
+ -  clone project
+ - bukti konfirmasi Faqih Huddin SM
+   
+   ![alt text](image-2.png)
 
 
 
@@ -42,5 +50,5 @@ Tugas Member:
 
 ## Tugas Bersama: ##
 1. Diskusi Penentuan Tema (notulen diskusi)
-Tema: Sistem Pendaftaran dan Pembayaran Berbasis mobile.
-Jadi tema tersebut untuk pendaftaran dan pembayaran digital, karena pada saat ini masih menggunakan manual pada pendaftaran dan pembayaran di Pondok Pesantren Qur'an Kayuwalang 
+  Tema: Sistem Pendaftaran dan Pembayaran Berbasis mobile.
+  Jadi tema tersebut untuk pendaftaran dan pembayaran digital, karena pada saat ini masih menggunakan manual pada pendaftaran dan pembayaran di Pondok Pesantren Qur'an Kayuwalang 
