@@ -2,10 +2,10 @@
 
 ## Anggota Kelompok
 
-1.Wahyu Ramdhani
-2.Khajizatu Sidqiyah
-3.Muhamad Zaki Abdul Khair
-4.Faqih huddin SM
+1. Wahyu Ramdhani
+2. Khajizatu Sidqiyah
+3. Muhamad Zaki Abdul Khair
+4. Faqih huddin SM
 
 ## PROGRESS 1 : pertemuan 5
 
@@ -23,10 +23,16 @@ Tugas Member:
 ![alt text](<buktiJijah.jpeg>)
 - clone project
 - bukti konfirmasi khajizatu sidqiyah
-![alt text](image-1.png)
+![alt text](img_jijah.png)
 
 3. Bukti konfirmasi Wahyu Ramdani
 - clone project
-- bukti konfirmasi khajizatu sidqiyah
+- bukti konfirmasi Wahyu Ramdani
 
 4. Bukti konfirmasi Faqih Huddin SM
+- clone project
+- bukti konfirmasi Faqih Huddin SM
+
+## Tugas Bersama: ##
+1. Diskusi Penentuan Tema (notulen diskusi)
+
