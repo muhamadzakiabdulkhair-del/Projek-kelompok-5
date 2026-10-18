@@ -50,5 +50,5 @@ Tugas Member:
 
 ## Tugas Bersama: ##
 1. Diskusi Penentuan Tema (notulen diskusi)
-  Tema: Sistem Pendaftaran dan Pembayaran Berbasis mobile.
-  Jadi tema tersebut untuk pendaftaran dan pembayaran digital, karena pada saat ini masih menggunakan manual pada pendaftaran dan pembayaran di Pondok Pesantren Qur'an Kayuwalang 
+  Tema: Sistem Vapestore Berbasis mobile.
+
