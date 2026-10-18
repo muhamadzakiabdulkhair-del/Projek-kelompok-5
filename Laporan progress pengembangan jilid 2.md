@@ -92,15 +92,29 @@ Oleh karena itu, tahap wawancara ini menjadi langkah awal yang penting dalam pen
 3. Pelanggan
 
 ## Pemagian Tugas ##
-1. Wahyu Ramdhani:
-2. Khajizatu Sidqiyah:
-3. Muhamad Zaki Abdul Khair:
-4. Faqih huddin SM:
+1. Wahyu Ramdhani: Keranjang checkout
+2. Khajizatu Sidqiyah: katalog, kelola produk dan stok
+3. Muhamad Zaki Abdul Khair: login
+4. Faqih huddin SM: pengelolaan pesanan
 
 ## Bukti tiap member membangun layer sesuai tugas ##
 1. Wahyu Ramdhani:
+
 2. Khajizatu Sidqiyah:
+
+    - katalog
+
+    ![alt text](katalog.gif)
+
+
+    - kelola produk dan stok
+
+    ![alt text](kelola-produk.gif)
+
 3. Muhamad Zaki Abdul Khair:
+
 4. Faqih huddin SM:
 
 ## Bukti Wawancara ##
+![alt text](bukti_wawncara1.png)
+![alt text](bukti_wawancara2.png)
