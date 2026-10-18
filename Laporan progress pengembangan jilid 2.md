@@ -1,6 +1,6 @@
 # LAPORAN PROGRESS PENGEMBANGAN APLIKASI MOBILE VAPESTORE
 
-## Tema dan Hasil Wawancara ##
+## Tema dan Hasil Wawancara
 
 1. Pendahuluan
 
@@ -11,6 +11,7 @@ Hasil wawancara tersebut menjadi dasar dalam menentukan kebutuhan awal dan ruang
 2. Tujuan Wawancara
 
 Wawancara dilakukan dengan tujuan:
+
 - Mengetahui proses penjualan VapeStore yang berjalan saat ini.
 - Mengidentifikasi produk yang dijual dan cara pengelolaan stok.
 - Memahami proses pemesanan dan pembayaran pelanggan.
@@ -19,8 +20,8 @@ Wawancara dilakukan dengan tujuan:
 - Menentukan fitur awal yang perlu diprioritaskan dalam pengembangan sistem.
 
 3. Pelaksanaan Wawancara
-Wawancara dilakukan dengan pemilik VapeStore sebagai narasumber. Pertanyaan yang diajukan mencakup proses penjualan, jenis produk, pengelolaan stok, metode pemesanan, pembayaran, pembagian tugas pengguna, dan fitur yang diharapkan tersedia pada aplikasi.
-Selain itu, tim juga menggali kendala yang dialami dalam pengelolaan produk, stok, harga, transaksi penjualan, dan penyampaian informasi produk kepada pelanggan.
+   Wawancara dilakukan dengan pemilik VapeStore sebagai narasumber. Pertanyaan yang diajukan mencakup proses penjualan, jenis produk, pengelolaan stok, metode pemesanan, pembayaran, pembagian tugas pengguna, dan fitur yang diharapkan tersedia pada aplikasi.
+   Selain itu, tim juga menggali kendala yang dialami dalam pengelolaan produk, stok, harga, transaksi penjualan, dan penyampaian informasi produk kepada pelanggan.
 
 4. Hasil Wawancara
 
@@ -40,6 +41,7 @@ Salah satu kendala yang dihadapi adalah ketika produk yang banyak diminati pelan
 
 Pelanggan melakukan pembelian dengan datang langsung ke toko atau menghubungi toko melalui WhatsApp.
 Metode pembayaran yang digunakan saat ini meliputi:
+
 - Pembayaran tunai (cash).
 - Transfer bank.
 - QRIS.
@@ -50,14 +52,15 @@ Pada transaksi langsung, barang dibawa oleh pelanggan setelah pembelian dilakuka
 4. Pengguna Sistem
 
 Berdasarkan wawancara, pengguna internal yang disebutkan oleh pemilik adalah:
+
 1. **Owner:** mengelola usaha, memantau stok, melihat transaksi, dan memperoleh laporan penjualan.
 2. **Karyawan:** membantu kegiatan operasional toko, melayani pelanggan, serta mengelola produk dan transaksi sesuai kewenangannya.
 3. **Pelanggan:** yang dimana nantinya pelanggan bisa melihat jenis produk, harga, foto dan sebagainya. selain itu juga pelanggan bisa melakukan checkout dan memilih metode pembayaran serta status pesanan.
 
-
-5. Kebutuhan Aplikasi
+4. Kebutuhan Aplikasi
 
 Pemilik menyampaikan bahwa aplikasi diharapkan dapat memberikan kemudahan dalam:
+
 - Pengelolaan pesanan pelanggan.
 - Pembaruan data dan stok produk.
 - Pengelolaan pembayaran.
@@ -86,35 +89,37 @@ Berdasarkan hasil wawancara dengan pemilik VapeStore, diketahui bahwa proses pen
 Pemilik mengharapkan aplikasi mobile yang dapat membantu pengelolaan pesanan, pembaruan stok, sistem pembayaran, serta penyediaan laporan penjualan harian dan stok akhir.
 Oleh karena itu, tahap wawancara ini menjadi langkah awal yang penting dalam pengembangan aplikasi VapeStore. Hasilnya akan digunakan sebagai dasar untuk menyusun kebutuhan sistem, merancang antarmuka dan database, serta menentukan prioritas implementasi pada tahap selanjutnya.
 
-## Role yang ada pada sistem ##
+## Role yang ada pada sistem
+
 1. Owner
 2. Karyawan
 3. Pelanggan
 
-## Pemagian Tugas ##
+## Pemagian Tugas
+
 1. Wahyu Ramdhani: Keranjang checkout
 2. Khajizatu Sidqiyah: katalog, kelola produk dan stok
 3. Muhamad Zaki Abdul Khair: login
 4. Faqih huddin SM: pengelolaan pesanan
 
-## Bukti tiap member membangun layer sesuai tugas ##
+## Bukti tiap member membangun layer sesuai tugas
+
 1. Wahyu Ramdhani:
 
 2. Khajizatu Sidqiyah:
+   - katalog
 
-    - katalog
+   ![alt text](katalog.gif)
+   - kelola produk dan stok
 
-    ![alt text](katalog.gif)
-
-
-    - kelola produk dan stok
-
-    ![alt text](kelola-produk.gif)
+   ![alt text](kelola-produk.gif)
 
 3. Muhamad Zaki Abdul Khair:
-
+   -Login
+   ![alt text](login.gif)
 4. Faqih huddin SM:
 
-## Bukti Wawancara ##
+## Bukti Wawancara
+
 ![alt text](bukti_wawncara1.png)
 ![alt text](bukti_wawancara2.png)
