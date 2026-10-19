@@ -106,6 +106,10 @@ Wawancara dilakukan dengan tujuan:
 
 1. Wahyu Ramdhani:
 
+   - Keranjang Checkout
+
+   ![alt text](keranjangggg.gif)
+
 2. Khajizatu Sidqiyah:
    - katalog
 
