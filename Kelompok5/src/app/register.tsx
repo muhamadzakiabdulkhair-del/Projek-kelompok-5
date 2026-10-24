@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Platform,
   Pressable,
@@ -11,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { mockRegister } from "@/mock/auth";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -18,17 +20,17 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function showMessage(title: string, message: string) {
     if (Platform.OS === "web") {
-      // Alert React Native tidak tampil konsisten di web.
       window.alert(`${title}\n\n${message}`);
     } else {
       Alert.alert(title, message);
     }
   }
 
-  function handleRegister() {
+  async function handleRegister() {
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       showMessage("Form belum lengkap", "Isi semua kolom terlebih dahulu.");
       return;
@@ -52,10 +54,23 @@ export default function RegisterScreen() {
       return;
     }
 
-    showMessage(
-      "Form valid",
-      "Form pendaftaran sudah lengkap, tetapi pembuatan akun belum aktif karena backend belum terhubung.",
-    );
+    setLoading(true);
+    try {
+      const result = mockRegister({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (result.ok) {
+        showMessage("Pendaftaran berhasil", "Akun kamu sudah dibuat. Silakan masuk.");
+        router.replace("/login");
+      } else {
+        showMessage("Pendaftaran gagal", result.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -111,8 +126,16 @@ export default function RegisterScreen() {
             autoComplete="new-password"
           />
 
-          <Pressable style={styles.button} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Daftar</Text>
+          <Pressable
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleRegister}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>Daftar</Text>
+            )}
           </Pressable>
 
           <View style={styles.footer}>
@@ -186,6 +209,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 24,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: "#FFFFFF",

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Redirect } from "expo-router";
 import {
   Image,
   SafeAreaView,
@@ -14,270 +13,169 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 
 const GREEN = "#087F50";
-const DARK = "#16352A";
-const LIGHT_GREEN = "#E5F4EC";
-const BG = "#F7F9F7";
+const DARK = "#0F1F17";
+const BG = "#F5F7F5";
+const HEADER_BG = "#FFFFFF";
 
-// Kategori produk menggunakan empat gambar yang tersedia
 const categories = [
-  { name: "Pod", image: require("../../assets/images/Pod.png") },
-  { name: "Mod", image: require("../../assets/images/Mod.png") },
-  { name: "Liquid", image: require("../../assets/images/Liquid.png") },
-  { name: "Coil", image: require("../../assets/images/Coil.png") },
-  { name: "Aksesori", image: require("../../assets/images/Coil.png") },
+  { name: "Pod",      icon: "💨", image: require("../../assets/images/Pod.png") },
+  { name: "Mod",      icon: "⚡", image: require("../../assets/images/Mod.png") },
+  { name: "Liquid",   icon: "💧", image: require("../../assets/images/Liquid.png") },
+  { name: "Coil",     icon: "🔩", image: require("../../assets/images/Coil.png") },
+  { name: "Aksesori", icon: "🎒", image: require("../../assets/images/Coil.png") },
 ];
 
-// Data produk sementara
 const products = [
-  {
-    id: "1",
-    name: "Uwell Caliburn G2",
-    category: "Pod",
-    price: 450000,
-    image: require("../../assets/images/Pod.png"),
-    color: "#DCE8E1",
-  },
-  {
-    id: "2",
-    name: "Vaporesso XROS 3",
-    category: "Mod",
-    price: 550000,
-    image: require("../../assets/images/Mod.png"),
-    color: "#E7E1D8",
-  },
-  {
-    id: "3",
-    name: "Liquid Strawberry",
-    category: "Liquid",
-    price: 150000,
-    image: require("../../assets/images/Liquid.png"),
-    color: "#F3E2DF",
-  },
-  {
-    id: "4",
-    name: "Coil Replacement",
-    category: "Coil",
-    price: 120000,
-    image: require("../../assets/images/Coil.png"),
-    color: "#E5E6F0",
-  },
+  { id: "1", name: "Uwell Caliburn G2", sub: "Pod System · Hitam", category: "Pod", price: 450000, rating: 4.9, reviews: 100, image: require("../../assets/images/Pod.png") },
+  { id: "2", name: "Vaporesso XROS 3",  sub: "Pod System",         category: "Mod", price: 550000, rating: 4.7, reviews: 99,  image: require("../../assets/images/Mod.png") },
+  { id: "3", name: "Liquid Naked 100",  sub: "Strawberry 60ml",    category: "Liquid", price: 150000, rating: 4.8, reviews: 55, image: require("../../assets/images/Liquid.png") },
+  { id: "4", name: "Coil Geekvape",     sub: "Pack 4",             category: "Coil", price: 120000, rating: 4.6, reviews: 40, image: require("../../assets/images/Coil.png") },
+  { id: "5", name: "Voopoo Drag X",     sub: "Mod",                category: "Mod", price: 1200000, rating: 4.9, reviews: 76, image: require("../../assets/images/Mod.png") },
+  { id: "6", name: "Geekvape Aegis",    sub: "Mod",                category: "Mod", price: 1350000, rating: 4.8, reviews: 61, image: require("../../assets/images/Mod.png") },
 ];
 
 function formatRupiah(price: number) {
   return "Rp " + price.toLocaleString("id-ID");
 }
 
-export default function HomeScreen() {
+const NAV_TABS = [
+  { name: "Beranda",  icon: "🏠" },
+  { name: "Kategori", icon: "🗂" },
+  { name: "Keranjang",icon: "🛒" },
+  { name: "Pesanan",  icon: "📋" },
+  { name: "Profil",   icon: "👤" },
+];
+
+export default function DashboardScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [activeTab, setActiveTab] = useState("Beranda");
   const [cartCount, setCartCount] = useState(0);
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.category.toLowerCase().includes(search.toLowerCase());
-
-    const matchesCategory =
-      selectedCategory === "Semua" ||
-      product.category.toLowerCase() === selectedCategory.toLowerCase();
-
-    return matchesSearch && matchesCategory;
+  const filteredProducts = products.filter((p) => {
+    const matchSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase());
+    const matchCat = selectedCategory === "Semua" || p.category === selectedCategory;
+    return matchSearch && matchCat;
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={s.safe}>
       <StatusBar style="dark" />
 
-      {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.brand}>
-          <View style={styles.logo}>
-            <Text style={styles.logoIcon}>V</Text>
+      {/* ── HEADER ── */}
+      <View style={s.header}>
+        <View style={s.brandRow}>
+          <View style={s.logoBox}>
+            <Text style={s.logoFire}>🔥</Text>
           </View>
-
-          <Text style={styles.brandText}>
-            Vape<Text style={styles.brandAccent}>Store</Text>
+          <Text style={s.brandText}>
+            Vape<Text style={s.brandGreen}>Store</Text>
           </Text>
         </View>
-
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.manageHeaderButton}
-            onPress={() => router.push("/kelola-produk")}
-          >
-            <Text style={styles.manageHeaderButtonText}>Kelola</Text>
+        <View style={s.headerIcons}>
+          <TouchableOpacity style={s.iconBtn}>
+            <Text style={s.iconBtnText}>🔍</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.iconBtn}>
+            <Text style={s.iconBtnText}>🔔</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setActiveTab("Pesanan")}
+            style={[s.iconBtn, s.loginIconBtn]}
+            onPress={() => router.push("/pelanggan/login")}
           >
-            <Text style={styles.headerIcon}>♧</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setActiveTab("Keranjang")}
-          >
-            <Text style={styles.headerIcon}>🛒</Text>
-            {cartCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartCount}</Text>
-              </View>
-            )}
+            <Text style={s.iconBtnText}>👤</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-      >
-        {/* PENCARIAN */}
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>⌕</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
 
+        {/* ── SEARCH ── */}
+        <View style={s.searchBox}>
+          <Text style={s.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
-            placeholder="Cari produk atau kategori..."
-            placeholderTextColor="#89958E"
+            style={s.searchInput}
+            placeholder="Cari produk, kategori, atau merek..."
+            placeholderTextColor="#9AAEA4"
             value={search}
             onChangeText={setSearch}
           />
-
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Text style={styles.clearSearch}>✕</Text>
+              <Text style={s.searchClear}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* BANNER TANPA GAMBAR TAMBAHAN */}
-        <View style={styles.banner}>
-          <View style={styles.bannerText}>
-            <Text style={styles.bannerEyebrow}>SELAMAT DATANG DI</Text>
-
-            <Text style={styles.bannerTitle}>VapeStore</Text>
-
-            <Text style={styles.bannerDescription}>
-              Temukan produk dan aksesori pilihan.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.bannerButton}
-              onPress={() => {
-                setSelectedCategory("Semua");
-                setSearch("");
-              }}
-            >
-              <Text style={styles.bannerButtonText}>Jelajahi Katalog →</Text>
+        {/* ── BANNER ── */}
+        <View style={s.banner}>
+          <View style={s.bannerContent}>
+            <Text style={s.bannerEye}>POD SYSTEM</Text>
+            <Text style={s.bannerTitle}>RASA LEBIH{"\n"}NIKMAT</Text>
+            <TouchableOpacity style={s.bannerBtn}>
+              <Text style={s.bannerBtnText}>Belanja Sekarang</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.bannerDecoration}>
-            <Text style={styles.bannerLetter}>V</Text>
+          <View style={s.bannerDeco}>
+            <Text style={s.bannerDecoText}>💨</Text>
           </View>
         </View>
 
-        {/* KATEGORI */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Kategori Produk</Text>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-        >
+        {/* ── KATEGORI ── */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.catList}>
           <TouchableOpacity
-            style={[
-              styles.categoryItem,
-              selectedCategory === "Semua" && styles.categorySelected,
-            ]}
+            style={s.catItem}
             onPress={() => setSelectedCategory("Semua")}
           >
-            <View style={styles.categoryIcon}>
-              <Text style={styles.allCategoryIcon}>▦</Text>
+            <View style={[s.catIcon, selectedCategory === "Semua" && s.catIconActive]}>
+              <Text style={s.catEmoji}>🗂</Text>
             </View>
-
-            <Text style={styles.categoryName}>Semua</Text>
+            <Text style={[s.catName, selectedCategory === "Semua" && s.catNameActive]}>Semua</Text>
           </TouchableOpacity>
-
-          {categories.map((category) => (
+          {categories.map((c) => (
             <TouchableOpacity
-              key={category.name}
-              style={[
-                styles.categoryItem,
-                selectedCategory === category.name && styles.categorySelected,
-              ]}
-              onPress={() => setSelectedCategory(category.name)}
+              key={c.name}
+              style={s.catItem}
+              onPress={() => setSelectedCategory(c.name)}
             >
-              <View style={styles.categoryIcon}>
-                <Image
-                  source={category.image}
-                  style={styles.categoryImage}
-                  resizeMode="contain"
-                />
+              <View style={[s.catIcon, selectedCategory === c.name && s.catIconActive]}>
+                <Image source={c.image} style={s.catImg} resizeMode="contain" />
               </View>
-
-              <Text style={styles.categoryName}>{category.name}</Text>
+              <Text style={[s.catName, selectedCategory === c.name && s.catNameActive]}>{c.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* PRODUK PILIHAN */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Produk Pilihan</Text>
-
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedCategory("Semua");
-              setSearch("");
-            }}
-          >
-            <Text style={styles.seeAll}>Lihat Semua →</Text>
+        {/* ── PRODUK TERBARU ── */}
+        <View style={s.sectionRow}>
+          <Text style={s.sectionTitle}>Produk Terbaru</Text>
+          <TouchableOpacity onPress={() => setSelectedCategory("Semua")}>
+            <Text style={s.seeAll}>Lihat Semua &rsaquo;</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.productGrid}>
-          {filteredProducts.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <View
-                style={[
-                  styles.productImage,
-                  { backgroundColor: product.color },
-                ]}
-              >
-                <Image
-                  source={product.image}
-                  style={styles.productPhoto}
-                  resizeMode="contain"
-                />
-
-                <View style={styles.productTag}>
-                  <Text style={styles.productTagText}>Produk</Text>
-                </View>
+        <View style={s.grid}>
+          {filteredProducts.map((p) => (
+            <View key={p.id} style={s.card}>
+              <View style={s.cardImgWrap}>
+                <Image source={p.image} style={s.cardImg} resizeMode="contain" />
               </View>
-
-              <View style={styles.productInfo}>
-                <Text style={styles.productCategory}>{product.category}</Text>
-
-                <Text style={styles.productName} numberOfLines={2}>
-                  {product.name}
-                </Text>
-
-                <Text style={styles.productPrice}>
-                  {formatRupiah(product.price)}
-                </Text>
-
+              <View style={s.cardBody}>
+                <Text style={s.cardSub}>{p.sub}</Text>
+                <Text style={s.cardName} numberOfLines={2}>{p.name}</Text>
+                <View style={s.ratingRow}>
+                  <Text style={s.ratingText}>⭐ {p.rating}</Text>
+                  <Text style={s.reviewText}>({p.reviews})</Text>
+                </View>
+                <Text style={s.cardPrice}>{formatRupiah(p.price)}</Text>
                 <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => setCartCount((count) => count + 1)}
+                  style={s.addBtn}
+                  onPress={() => setCartCount((n) => n + 1)}
                 >
-                  <Text style={styles.addButtonText}>
-                    + Tambah ke Keranjang
-                  </Text>
+                  <Text style={s.addBtnText}>🛒</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -285,74 +183,62 @@ export default function HomeScreen() {
         </View>
 
         {filteredProducts.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Produk tidak ditemukan</Text>
-
-            <Text style={styles.emptyDescription}>
-              Coba kata kunci atau kategori lain.
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => {
-                setSearch("");
-                setSelectedCategory("Semua");
-              }}
-            >
-              <Text style={styles.seeAll}>Reset Pencarian</Text>
+          <View style={s.empty}>
+            <Text style={s.emptyTitle}>Produk tidak ditemukan</Text>
+            <TouchableOpacity onPress={() => { setSearch(""); setSelectedCategory("Semua"); }}>
+              <Text style={s.seeAll}>Reset Pencarian</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* FOOTER */}
-        <View style={styles.footer}>
-          <Text style={styles.footerTitle}>VapeStore</Text>
-          <Text style={styles.footerText}>
-            Katalog produk dan aksesori dalam satu aplikasi.
-          </Text>
-        </View>
+        {/* ── PRODUK PILIHAN ── */}
+        {selectedCategory === "Semua" && search === "" && (
+          <>
+            <View style={s.sectionRow}>
+              <Text style={s.sectionTitle}>Produk Pilihan</Text>
+              <Text style={s.seeAll}>Lihat Semua &rsaquo;</Text>
+            </View>
+            <View style={s.grid}>
+              {[...products].reverse().slice(0, 4).map((p) => (
+                <View key={"pick-" + p.id} style={s.card}>
+                  <View style={s.cardImgWrap}>
+                    <Image source={p.image} style={s.cardImg} resizeMode="contain" />
+                  </View>
+                  <View style={s.cardBody}>
+                    <Text style={s.cardSub}>{p.sub}</Text>
+                    <Text style={s.cardName} numberOfLines={2}>{p.name}</Text>
+                    <View style={s.ratingRow}>
+                      <Text style={s.ratingText}>⭐ {p.rating}</Text>
+                      <Text style={s.reviewText}>({p.reviews})</Text>
+                    </View>
+                    <Text style={s.cardPrice}>{formatRupiah(p.price)}</Text>
+                    <TouchableOpacity style={s.addBtn} onPress={() => setCartCount((n) => n + 1)}>
+                      <Text style={s.addBtnText}>🛒</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
       </ScrollView>
 
-      {/* NAVIGASI BAWAH */}
-      <View style={styles.bottomNav}>
-        {[
-          { name: "Beranda", icon: "⌂" },
-          { name: "Kategori", icon: "▦" },
-          { name: "Keranjang", icon: "🛒" },
-          { name: "Pesanan", icon: "▤" },
-          { name: "Profil", icon: "♙" },
-        ].map((tab) => (
+      {/* ── BOTTOM NAV ── */}
+      <View style={s.bottomNav}>
+        {NAV_TABS.map((tab) => (
           <TouchableOpacity
             key={tab.name}
-            style={styles.navItem}
-            onPress={() => {
-              setActiveTab(tab.name);
-
-              if (tab.name === "Kategori") {
-                setSelectedCategory("Semua");
-              }
-            }}
+            style={s.navItem}
+            onPress={() => setActiveTab(tab.name)}
           >
-            <Text
-              style={[
-                styles.navIcon,
-                activeTab === tab.name && styles.navActive,
-              ]}
-            >
-              {tab.icon}
-            </Text>
-
-            <Text
-              style={[
-                styles.navLabel,
-                activeTab === tab.name && styles.navActive,
-              ]}
-            >
+            <Text style={s.navIcon}>{tab.icon}</Text>
+            <Text style={[s.navLabel, activeTab === tab.name && s.navLabelActive]}>
               {tab.name}
             </Text>
-
             {tab.name === "Keranjang" && cartCount > 0 && (
-              <View style={styles.navBadge}>
-                <Text style={styles.navBadgeText}>{cartCount}</Text>
+              <View style={s.badge}>
+                <Text style={s.badgeText}>{cartCount}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -362,373 +248,113 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: BG },
   header: {
-    minHeight: 66,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E9EEE9",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: HEADER_BG,
+    borderBottomWidth: 1, borderBottomColor: "#E8EEE8",
   },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  logoBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: "#0F3D25",
+    alignItems: "center", justifyContent: "center",
   },
-  logo: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: GREEN,
-    alignItems: "center",
-    justifyContent: "center",
+  logoFire: { fontSize: 20 },
+  brandText: { fontSize: 22, fontWeight: "900", color: DARK },
+  brandGreen: { color: GREEN },
+  headerIcons: { flexDirection: "row", gap: 8 },
+  iconBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: "#F0F5F0",
+    alignItems: "center", justifyContent: "center",
   },
-  logoIcon: {
-    color: "#FFFFFF",
-    fontSize: 25,
-    fontWeight: "800",
+  loginIconBtn: {
+    backgroundColor: "#087F50",
   },
-  brandText: {
-    color: DARK,
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  brandAccent: {
-    color: GREEN,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  manageHeaderButton: {
-    backgroundColor: GREEN,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 11,
-  },
-  manageHeaderButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    backgroundColor: BG,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerIcon: {
-    fontSize: 19,
-  },
-  cartBadge: {
-    position: "absolute",
-    top: -3,
-    right: -3,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "#E34C4C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cartBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  content: {
-    padding: 18,
-    paddingBottom: 25,
-  },
+  iconBtnText: { fontSize: 18 },
+  content: { padding: 14, paddingBottom: 20 },
   searchBox: {
-    height: 46,
-    borderRadius: 14,
+    flexDirection: "row", alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5EAE5",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 13,
-    marginBottom: 18,
+    borderRadius: 12, borderWidth: 1, borderColor: "#DDE8E2",
+    paddingHorizontal: 12, marginBottom: 14, height: 46,
   },
-  searchIcon: {
-    fontSize: 25,
-    color: GREEN,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: DARK,
-  },
-  clearSearch: {
-    color: GREEN,
-    fontSize: 16,
-    paddingHorizontal: 5,
-  },
+  searchIcon: { fontSize: 16, marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 13, color: DARK },
+  searchClear: { color: GREEN, fontSize: 14, paddingHorizontal: 4 },
   banner: {
-    minHeight: 175,
-    borderRadius: 20,
-    backgroundColor: "#073F2E",
+    borderRadius: 18, backgroundColor: "#073F2E",
+    overflow: "hidden", flexDirection: "row",
+    alignItems: "center", padding: 20, marginBottom: 18, minHeight: 160,
+  },
+  bannerContent: { flex: 1 },
+  bannerEye: { color: "#7DCCA4", fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 6 },
+  bannerTitle: { color: "#FFFFFF", fontSize: 26, fontWeight: "900", lineHeight: 30, marginBottom: 14 },
+  bannerBtn: {
+    alignSelf: "flex-start", backgroundColor: GREEN,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+  },
+  bannerBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+  bannerDeco: { width: 80, alignItems: "center", justifyContent: "center" },
+  bannerDecoText: { fontSize: 64, opacity: 0.4 },
+  catList: { gap: 10, paddingBottom: 18 },
+  catItem: { alignItems: "center", gap: 6, width: 64 },
+  catIcon: {
+    width: 52, height: 52, borderRadius: 16,
+    backgroundColor: "#E8F4EE",
+    alignItems: "center", justifyContent: "center", padding: 8,
+  },
+  catIconActive: { backgroundColor: GREEN },
+  catEmoji: { fontSize: 22 },
+  catImg: { width: "100%", height: "100%" },
+  catName: { fontSize: 11, color: "#6A7E72", fontWeight: "600", textAlign: "center" },
+  catNameActive: { color: GREEN, fontWeight: "800" },
+  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: "800", color: DARK },
+  seeAll: { fontSize: 12, color: GREEN, fontWeight: "700" },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
+  card: {
+    width: "48%" as any, flexGrow: 1, flexBasis: 140,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16, borderWidth: 1, borderColor: "#E8EEE8",
     overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-    marginBottom: 25,
   },
-  bannerText: {
-    flex: 1,
-    zIndex: 1,
+  cardImgWrap: {
+    height: 140, backgroundColor: "#EDF5F0",
+    alignItems: "center", justifyContent: "center", padding: 12,
   },
-  bannerEyebrow: {
-    color: "#A9DCC2",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    marginBottom: 7,
+  cardImg: { width: "100%", height: "100%" },
+  cardBody: { padding: 10 },
+  cardSub: { fontSize: 10, color: "#8A9E94", marginBottom: 3 },
+  cardName: { fontSize: 13, fontWeight: "700", color: DARK, marginBottom: 4, minHeight: 34 },
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
+  ratingText: { fontSize: 11, color: "#F0A500", fontWeight: "700" },
+  reviewText: { fontSize: 10, color: "#9AAEA4" },
+  cardPrice: { fontSize: 14, fontWeight: "800", color: GREEN, marginBottom: 8 },
+  addBtn: {
+    backgroundColor: GREEN, borderRadius: 8,
+    paddingVertical: 8, alignItems: "center",
   },
-  bannerTitle: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    fontWeight: "800",
-    marginBottom: 5,
-  },
-  bannerDescription: {
-    color: "#D5E9DE",
-    fontSize: 12,
-    marginBottom: 14,
-  },
-  bannerButton: {
-    alignSelf: "flex-start",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 9,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-  },
-  bannerButtonText: {
-    color: GREEN,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  bannerDecoration: {
-    position: "absolute",
-    right: 12,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
-  },
-  bannerLetter: {
-    color: "rgba(255,255,255,0.10)",
-    fontSize: 150,
-    fontWeight: "900",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    color: DARK,
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  seeAll: {
-    color: GREEN,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  categoryList: {
-    gap: 12,
-    paddingBottom: 25,
-  },
-  categoryItem: {
-    width: 74,
-    alignItems: "center",
-    gap: 7,
-    paddingVertical: 8,
-    borderRadius: 13,
-  },
-  categorySelected: {
-    backgroundColor: LIGHT_GREEN,
-  },
-  categoryIcon: {
-    width: 51,
-    height: 51,
-    borderRadius: 17,
-    backgroundColor: LIGHT_GREEN,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 7,
-  },
-  categoryImage: {
-    width: "100%",
-    height: "100%",
-  },
-  allCategoryIcon: {
-    color: GREEN,
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  categoryName: {
-    color: DARK,
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  productGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  productCard: {
-    width: "48%" as any,
-    flexGrow: 1,
-    flexBasis: 140,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E8EDE8",
-    overflow: "hidden",
-    marginBottom: 2,
-  },
-  productImage: {
-    height: 140,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
-  },
-  productPhoto: {
-    width: "100%",
-    height: "100%",
-  },
-  productTag: {
-    position: "absolute",
-    top: 9,
-    left: 9,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-  },
-  productTagText: {
-    color: GREEN,
-    fontSize: 9,
-    fontWeight: "700",
-  },
-  productInfo: {
-    padding: 11,
-  },
-  productCategory: {
-    color: "#7D8C82",
-    fontSize: 10,
-    marginBottom: 5,
-  },
-  productName: {
-    color: DARK,
-    fontSize: 12,
-    fontWeight: "700",
-    minHeight: 32,
-    marginBottom: 6,
-  },
-  productPrice: {
-    color: GREEN,
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 10,
-  },
-  addButton: {
-    backgroundColor: GREEN,
-    borderRadius: 9,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  addButtonText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  emptyState: {
-    alignItems: "center",
-    padding: 30,
-    gap: 10,
-  },
-  emptyTitle: {
-    color: DARK,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  emptyDescription: {
-    color: "#748078",
-    fontSize: 12,
-  },
-  footer: {
-    marginTop: 25,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5EAE5",
-  },
-  footerTitle: {
-    color: GREEN,
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 5,
-  },
-  footerText: {
-    color: "#78847C",
-    fontSize: 12,
-  },
+  addBtnText: { fontSize: 16 },
+  empty: { alignItems: "center", padding: 32, gap: 10 },
+  emptyTitle: { fontSize: 15, fontWeight: "700", color: DARK },
   bottomNav: {
-    minHeight: 66,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5EAE5",
-    paddingHorizontal: 4,
+    flexDirection: "row", backgroundColor: "#FFFFFF",
+    borderTopWidth: 1, borderTopColor: "#E8EEE8",
+    paddingVertical: 8, paddingHorizontal: 4,
   },
-  navItem: {
-    minWidth: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
+  navItem: { flex: 1, alignItems: "center", gap: 2 },
+  navIcon: { fontSize: 22 },
+  navLabel: { fontSize: 10, color: "#9AAEA4", fontWeight: "600" },
+  navLabelActive: { color: GREEN, fontWeight: "800" },
+  badge: {
+    position: "absolute", top: -2, right: 6,
+    backgroundColor: "#E34C4C", borderRadius: 8,
+    minWidth: 16, height: 16,
+    alignItems: "center", justifyContent: "center",
   },
-  navIcon: {
-    color: "#89958E",
-    fontSize: 21,
-  },
-  navLabel: {
-    color: "#89958E",
-    fontSize: 10,
-  },
-  navActive: {
-    color: GREEN,
-    fontWeight: "800",
-  },
-  navBadge: {
-    position: "absolute",
-    top: -5,
-    right: 3,
-    backgroundColor: "#E34C4C",
-    borderRadius: 8,
-    minWidth: 15,
-    height: 15,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "700",
-  },
+  badgeText: { color: "#FFFFFF", fontSize: 9, fontWeight: "800" },
 });
