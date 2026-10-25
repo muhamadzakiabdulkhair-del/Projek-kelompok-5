@@ -20,7 +20,7 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 
 **Screenshot:**
 
-![Dashboard](Kelompok5/screenshots/dashboard.png)
+![Dashboard](screenshots/dashboaard.png)
 
 ### 2.2 Katalog Produk
 **Fitur UI:**
@@ -30,7 +30,7 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 
 **Screenshot:**
 
-![Katalog Produk](Kelompok5/screenshots/katalog.png)
+![Katalog Produk](screenshots/katalogg.png)
 
 ### 2.3 Detail Produk
 **Fitur UI:**
@@ -40,7 +40,7 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 
 **Screenshot:**
 
-![Detail Produk](Kelompok5/screenshots/detail_produk.png)
+![Detail Produk](screenshots/detail-produk.png)
 
 ### 2.4 Keranjang
 **Fitur UI:**
