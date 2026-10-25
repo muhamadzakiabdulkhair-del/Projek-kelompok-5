@@ -1,56 +1,65 @@
-# Welcome to your Expo app 👋
+# VapeStore
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplikasi toko vape berbasis React Native dengan Expo, dibuat untuk UTS Pemrograman Mobile Kelompok 5.
 
-## Get started
+## Deskripsi
 
-1. Install dependencies
+VapeStore punya tiga alur pengguna: pelanggan yang belanja, karyawan yang mengelola produk dan pesanan, dan owner yang melihat dashboard serta laporan. Data masih dummy (mock) untuk keperluan tampilan.
 
-   ```bash
-   npm install
-   ```
+## Daftar Screen
 
-2. Start the app
+| Screen | Keterangan |
+|---|---|
+| Beranda (katalog) | Banner, kategori, dan daftar produk dua kolom (FlatList) |
+| Detail produk | Info produk, tombol tambah ke keranjang |
+| Keranjang | Daftar barang, metode bayar, checkout |
+| Pesanan | Riwayat pesanan |
+| Profil | Info akun |
+| Login pelanggan / karyawan / owner | Form login dengan validasi dan pesan error |
+| Dashboard owner | Kartu statistik dan tombol cepat |
+| Laporan | Penjualan harian dan stok akhir |
+| Kelola produk | Daftar produk (FlatList) dan statistik stok |
+| Form tambah produk | Form dengan state focus dan error |
 
-   ```bash
-   npx expo start
-   ```
+## Screenshot
 
-In the output, you'll find options to open the app in a
+| | |
+|---|---|
+| ![Beranda](docs/shots/01-beranda.png) | ![Detail produk](docs/shots/02-detail-produk.png) |
+| ![Keranjang](docs/shots/03-keranjang.png) | ![Login](docs/shots/06-login-pelanggan.png) |
+| ![Dashboard owner](docs/shots/09-dashboard-owner.png) | ![Kelola produk](docs/shots/11-kelola-produk.png) |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+[Tambahkan screenshot lainnya sesuai kebutuhan]
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Komponen Reusable
 
-## Get a fresh project
+- `AppButton`: tombol dengan variasi warna dan ikon
+- `AppInput`: input dengan state focus dan pesan error
+- `ProductCard`: kartu produk untuk FlatList
+- `BottomNav`: navigasi bawah yang berbeda tiap role
+- `ScreenHeader`: header dengan tombol kembali
 
-When you're ready, run:
+## Cara Menjalankan
 
 ```bash
-npm run reset-project
+git clone [link-repo]
+cd Kelompok5
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Scan QR yang muncul di terminal dengan aplikasi **Expo Go** di HP.
 
-### Other setup steps
+Atau coba langsung lewat Expo Snack: [link-snack]
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Akun Demo
 
-## Learn more
+- Owner: `admin@vapestore.com` / `admin123`
+- Karyawan: `karyawan@vapestore.com` / `karyawan123`
+- Pelanggan: [isi akun atau tulis "daftar baru di halaman login"]
 
-To learn more about developing your project with Expo, look at the following resources:
+## Anggota Kelompok
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Nama] ([NIM]): [bagian]
+- [Nama] ([NIM]): [bagian]
+- [Nama] ([NIM]): [bagian]
