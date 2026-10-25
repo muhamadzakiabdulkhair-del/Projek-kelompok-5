@@ -1,339 +1,398 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
+  FlatList,
   Image,
-  ImageSourcePropType,
+  Platform,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   View,
-} from 'react-native';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AppButton } from "@/components/app-button";
+import { BottomNav } from "@/components/bottom-nav";
+import { EmptyState } from "@/components/empty-state";
+import { QtyStepper } from "@/components/qty-stepper";
+import { ScreenHeader } from "@/components/screen-header";
+import { tabsForRole } from "@/constants/navigation";
+import { colors, font, radius, spacing } from "@/constants/palette";
+import { useCart, type CartLine } from "@/context/cart";
+import { formatRupiah } from "@/data/products";
 
-// ====== Konfigurasi ======
-// Ganti dengan URL backend kamu (endpoint transaksi)
-const API_URL = 'http://localhost:3000/api';
-const ONGKOS_KIRIM = 15000;
+const ONGKOS_KIRIM = 15_000;
 
-type CartItem = {
-  id: string;
-  nama: string;
-  varian: string;
-  harga: number;
-  qty: number;
-  gambar?: ImageSourcePropType;
-};
-
-type PaymentMethod = 'TRANSFER_BANK' | 'QRIS' | 'COD';
+type PaymentMethod = "TRANSFER_BANK" | "QRIS" | "COD";
 
 const PAYMENT_OPTIONS: {
   key: PaymentMethod;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { key: 'TRANSFER_BANK', label: 'Transfer Bank', icon: 'card-outline' },
-  { key: 'QRIS', label: 'QRIS', icon: 'qr-code-outline' },
-  { key: 'COD', label: 'COD (Bayar di Tempat)', icon: 'cash-outline' },
+  { key: "TRANSFER_BANK", label: "Transfer Bank", icon: "card-outline" },
+  { key: "QRIS", label: "QRIS", icon: "qr-code-outline" },
+  { key: "COD", label: "COD (Bayar di Tempat)", icon: "cash-outline" },
 ];
 
-// Data awal (sementara). Nanti ganti dengan data dari API / state global.
-const INITIAL_ITEMS: CartItem[] = [
-  {
-    id: '1',
-    nama: 'Uwell Caliburn G2',
-    varian: 'Pod System – Hitam',
-    harga: 450000,
-    qty: 1,
-  },
-  {
-    id: '2',
-    nama: 'Liquid Naked 100',
-    varian: 'Strawberry 60ml',
-    harga: 150000,
-    qty: 1,
-  },
-  {
-    id: '3',
-    nama: 'Coil Uwell Caliburn G2',
-    varian: '(Pack 4)',
-    harga: 120000,
-    qty: 1,
-  },
-];
+// ─── Item baris keranjang ──────────────────────────────────────────────────
+function CartItemRow({ line, onSetQty, onRemove }: {
+  line: CartLine;
+  onSetQty: (qty: number) => void;
+  onRemove: () => void;
+}) {
+  const { product, qty } = line;
+  const soldOut = product.stock <= 0;
 
-const formatRupiah = (n: number) =>
-  'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (
+    <View style={styles.card}>
+      {/* Gambar produk */}
+      <View style={styles.thumb}>
+        <Image source={product.image} style={styles.thumbImg} resizeMode="contain" />
+      </View>
 
-export default function Keranjang() {
+      {/* Info produk */}
+      <View style={styles.info}>
+        <Text style={styles.itemName} numberOfLines={2}>{product.name}</Text>
+        <Text style={styles.itemSub}>{product.sub}</Text>
+        <Text style={styles.itemPrice}>{formatRupiah(product.price)}</Text>
+
+        {soldOut && (
+          <Text style={styles.soldOutBadge}>Stok habis</Text>
+        )}
+      </View>
+
+      {/* Kontrol kanan */}
+      <View style={styles.rightCol}>
+        <Pressable
+          style={styles.removeBtn}
+          onPress={onRemove}
+          hitSlop={8}
+          accessibilityLabel={`Hapus ${product.name}`}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.danger} />
+        </Pressable>
+
+        <QtyStepper
+          value={qty}
+          onChange={onSetQty}
+          min={1}
+          max={Math.max(1, product.stock)}
+        />
+      </View>
+    </View>
+  );
+}
+
+// ─── Baris metode pembayaran ───────────────────────────────────────────────
+function PaymentRow({
+  opt,
+  selected,
+  onSelect,
+}: {
+  opt: (typeof PAYMENT_OPTIONS)[number];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <Pressable
+      style={[styles.payRow, selected && styles.payRowActive]}
+      onPress={onSelect}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+    >
+      <View style={[styles.payIconBox, selected && styles.payIconBoxActive]}>
+        <Ionicons
+          name={opt.icon}
+          size={20}
+          color={selected ? colors.white : colors.primary}
+        />
+      </View>
+      <Text style={[styles.payLabel, selected && styles.payLabelActive]}>
+        {opt.label}
+      </Text>
+      <View style={[styles.radio, selected && styles.radioActive]}>
+        {selected && <View style={styles.radioDot} />}
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── Screen utama ──────────────────────────────────────────────────────────
+export default function KeranjangScreen() {
   const router = useRouter();
-  const [items, setItems] = useState<CartItem[]>(INITIAL_ITEMS);
-  const [payment, setPayment] = useState<PaymentMethod>('TRANSFER_BANK');
+  const { lines, total, count, setQty, remove, clear } = useCart();
+  const [payment, setPayment] = useState<PaymentMethod>("TRANSFER_BANK");
   const [loading, setLoading] = useState(false);
 
-  const subtotal = useMemo(
-    () => items.reduce((sum, it) => sum + it.harga * it.qty, 0),
-    [items]
-  );
-  const ongkir = items.length > 0 ? ONGKOS_KIRIM : 0;
-  const total = subtotal + ongkir;
-  const totalBarang = items.reduce((sum, it) => sum + it.qty, 0);
+  const ongkir = lines.length > 0 ? ONGKOS_KIRIM : 0;
+  const grandTotal = total + ongkir;
 
-  const ubahQty = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === id ? { ...it, qty: Math.max(1, it.qty + delta) } : it
-      )
-    );
-  };
+  const handleCheckout = () => {
+    if (lines.length === 0) return;
 
-  const hapusItem = (id: string) => {
-    setItems((prev) => prev.filter((it) => it.id !== id));
-  };
+    const payLabel = PAYMENT_OPTIONS.find((p) => p.key === payment)?.label ?? payment;
 
-  const handleCheckout = async () => {
-    if (items.length === 0) {
-      Alert.alert('Keranjang kosong', 'Tambahkan produk terlebih dahulu.');
+    const msg = `Total: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}\n\nPesanan berhasil dibuat!`;
+
+    if (Platform.OS === "web") {
+      window.alert(msg);
+      clear();
+      router.replace("/pesanan");
       return;
     }
 
     setLoading(true);
-    try {
-      // Buat pesanan di backend
-      const res = await fetch(`${API_URL}/pesanan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // TODO: sertakan token auth bila backend memerlukan
-        body: JSON.stringify({
-          items: items.map((it) => ({
-            produkId: it.id,
-            qty: it.qty,
-            harga: it.harga,
-          })),
-          metodePembayaran: payment,
-          subtotal,
-          ongkosKirim: ongkir,
-          total,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Gagal membuat pesanan');
-      const data = await res.json();
-
-      setItems([]);
-      Alert.alert(
-        'Pesanan dibuat',
-        `Nomor pesanan: ${data?.id ?? '-'}\nMetode: ${
-          PAYMENT_OPTIONS.find((p) => p.key === payment)?.label
-        }`
-      );
-      // router.push('/pesanan'); // aktifkan jika halaman Pesanan sudah ada
-    } catch (e: any) {
-      Alert.alert('Checkout gagal', e?.message ?? 'Terjadi kesalahan.');
-    } finally {
+    // Simulasi proses checkout (UTS: tanpa backend)
+    setTimeout(() => {
       setLoading(false);
-    }
+      Alert.alert(
+        "Pesanan Dibuat ✓",
+        `Total: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`,
+        [
+          {
+            text: "Lihat Pesanan",
+            onPress: () => {
+              clear();
+              router.replace("/pesanan");
+            },
+          },
+          {
+            text: "Lanjut Belanja",
+            style: "cancel",
+            onPress: () => clear(),
+          },
+        ]
+      );
+    }, 600);
   };
+
+  // ── Header kanan: jumlah item ──
+  const headerRight =
+    count > 0 ? (
+      <View style={styles.countBadge}>
+        <Text style={styles.countText}>{count} item</Text>
+      </View>
+    ) : null;
+
+  // ── Footer ringkasan ──
+  const listFooter = (
+    <View style={styles.footerWrap}>
+      {/* Metode pembayaran */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Metode Pembayaran</Text>
+        {PAYMENT_OPTIONS.map((opt) => (
+          <PaymentRow
+            key={opt.key}
+            opt={opt}
+            selected={payment === opt.key}
+            onSelect={() => setPayment(opt.key)}
+          />
+        ))}
+      </View>
+
+      {/* Ringkasan harga */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ringkasan Belanja</Text>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Subtotal ({count} barang)</Text>
+          <Text style={styles.summaryValue}>{formatRupiah(total)}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Ongkos Kirim</Text>
+          <Text style={styles.summaryValue}>{formatRupiah(ongkir)}</Text>
+        </View>
+        <View style={[styles.summaryRow, styles.totalRow]}>
+          <Text style={styles.totalLabel}>Total Pembayaran</Text>
+          <Text style={styles.totalValue}>{formatRupiah(grandTotal)}</Text>
+        </View>
+      </View>
+
+      {/* Tombol checkout */}
+      <AppButton
+        label="Buat Pesanan"
+        icon="checkmark-circle"
+        loading={loading}
+        disabled={lines.length === 0 || loading}
+        onPress={handleCheckout}
+        style={styles.checkoutBtn}
+      />
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/dashboard"))} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color="#111" />
-        </Pressable>
-        <Text style={styles.headerTitle}>Keranjang</Text>
-      </View>
+      <ScreenHeader
+        title="Keranjang"
+        back
+        right={headerRight}
+      />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Daftar item */}
-        {items.length === 0 && (
-          <Text style={styles.empty}>Keranjang kamu masih kosong.</Text>
+      <FlatList
+        data={lines}
+        keyExtractor={(l) => l.product.id}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <EmptyState
+            icon="cart-outline"
+            title="Keranjang masih kosong"
+            message="Yuk, tambahkan produk dari katalog."
+            actionLabel="Lihat Katalog"
+            onAction={() => router.replace("/dashboard")}
+          />
+        }
+        ListFooterComponent={lines.length > 0 ? listFooter : null}
+        renderItem={({ item }) => (
+          <CartItemRow
+            line={item}
+            onSetQty={(qty) => setQty(item.product.id, qty)}
+            onRemove={() => remove(item.product.id)}
+          />
         )}
+        ItemSeparatorComponent={() => <View style={styles.sep} />}
+      />
 
-        {items.map((it) => (
-          <View key={it.id} style={styles.card}>
-            <View style={styles.thumb}>
-              {it.gambar ? (
-                <Image source={it.gambar} style={styles.thumbImg} />
-              ) : (
-                <Ionicons name="image-outline" size={28} color="#bbb" />
-              )}
-            </View>
-
-            <View style={styles.info}>
-              <Text style={styles.nama} numberOfLines={1}>
-                {it.nama}
-              </Text>
-              <Text style={styles.varian}>{it.varian}</Text>
-              <Text style={styles.harga}>{formatRupiah(it.harga)}</Text>
-            </View>
-
-            <View style={styles.right}>
-              <Pressable onPress={() => hapusItem(it.id)} hitSlop={8}>
-                <Ionicons name="trash-outline" size={20} color="#777" />
-              </Pressable>
-
-              <View style={styles.qtyBox}>
-                <Pressable onPress={() => ubahQty(it.id, -1)} hitSlop={6}>
-                  <Ionicons name="remove" size={18} color="#222" />
-                </Pressable>
-                <Text style={styles.qtyText}>{it.qty}</Text>
-                <Pressable onPress={() => ubahQty(it.id, 1)} hitSlop={6}>
-                  <Ionicons name="add" size={18} color="#222" />
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        ))}
-
-        {/* Ringkasan */}
-        <View style={styles.summary}>
-          <View style={styles.row}>
-            <Text style={styles.muted}>Subtotal ({totalBarang} barang)</Text>
-            <Text style={styles.muted}>{formatRupiah(subtotal)}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.muted}>Ongkos Kirim</Text>
-            <Text style={styles.muted}>{formatRupiah(ongkir)}</Text>
-          </View>
-          <View style={[styles.row, { marginTop: 10 }]}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{formatRupiah(total)}</Text>
-          </View>
-
-          <Pressable
-            style={[
-              styles.checkoutBtn,
-              (loading || items.length === 0) && { opacity: 0.6 },
-            ]}
-            onPress={handleCheckout}
-            disabled={loading || items.length === 0}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.checkoutText}>Checkout</Text>
-            )}
-          </Pressable>
-        </View>
-
-        {/* Metode pembayaran */}
-        <Text style={styles.sectionTitle}>Metode Pembayaran</Text>
-        {PAYMENT_OPTIONS.map((opt) => {
-          const selected = payment === opt.key;
-          return (
-            <Pressable
-              key={opt.key}
-              style={styles.payRow}
-              onPress={() => setPayment(opt.key)}
-            >
-              <Ionicons name={opt.icon} size={26} color="#1f4fa3" />
-              <Text style={styles.payLabel}>{opt.label}</Text>
-              <View style={[styles.radio, selected && styles.radioActive]}>
-                {selected && <View style={styles.radioDot} />}
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <BottomNav tabs={tabsForRole("pelanggan")} active="keranjang" />
     </SafeAreaView>
   );
 }
 
-const GREEN = '#0f8a4b';
-
+// ─── Styles ────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#111' },
-  content: { padding: 16, paddingBottom: 40, gap: 12 },
-  empty: { textAlign: 'center', color: '#888', marginVertical: 24 },
+  safe: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.lg, paddingBottom: spacing.xl + 8, flexGrow: 1 },
+  sep: { height: spacing.sm },
 
+  // Header badge
+  countBadge: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  countText: { fontSize: font.small, fontWeight: "700", color: colors.primary },
+
+  // Item card
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
-    padding: 10,
-    gap: 12,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.md,
   },
   thumb: {
     width: 72,
-    height: 88,
-    borderRadius: 10,
-    backgroundColor: '#f4f4f4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    height: 72,
+    borderRadius: radius.md,
+    backgroundColor: colors.tint,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
+    overflow: "hidden",
   },
-  thumbImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  info: { flex: 1, gap: 4 },
-  nama: { fontSize: 15, fontWeight: '700', color: '#111' },
-  varian: { fontSize: 12, color: '#888' },
-  harga: { fontSize: 15, fontWeight: '700', color: '#111', marginTop: 6 },
-  right: { alignItems: 'flex-end', justifyContent: 'space-between', height: 88 },
-  qtyBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  thumbImg: { width: "100%", height: "100%" },
+  info: { flex: 1, gap: 3 },
+  itemName: { fontSize: font.body, fontWeight: "800", color: colors.ink },
+  itemSub: { fontSize: font.small, color: colors.placeholder },
+  itemPrice: { fontSize: font.body, fontWeight: "800", color: colors.primary, marginTop: 4 },
+  soldOutBadge: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
-  qtyText: { fontSize: 15, fontWeight: '600', minWidth: 14, textAlign: 'center' },
+  rightCol: {
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    height: 72,
+  },
+  removeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.sm,
+    backgroundColor: colors.dangerSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-  summary: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
+  // Footer (metode bayar + ringkasan)
+  footerWrap: { gap: spacing.lg, marginTop: spacing.lg },
+  section: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
-    padding: 14,
-    gap: 8,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  muted: { fontSize: 13, color: '#666' },
-  totalLabel: { fontSize: 18, fontWeight: '800', color: '#111' },
-  totalValue: { fontSize: 18, fontWeight: '800', color: '#111' },
-  checkoutBtn: {
-    marginTop: 12,
-    backgroundColor: GREEN,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  checkoutText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  sectionTitle: { fontSize: font.heading, fontWeight: "800", color: colors.ink, marginBottom: 4 },
 
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 8, color: '#111' },
+  // Metode pembayaran
   payRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    backgroundColor: colors.bg,
   },
-  payLabel: { flex: 1, fontSize: 14, color: '#222' },
+  payRowActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  payIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  payIconBoxActive: { backgroundColor: colors.primary },
+  payLabel: { flex: 1, fontSize: font.body, color: colors.muted, fontWeight: "600" },
+  payLabelActive: { color: colors.primary, fontWeight: "800" },
   radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: radius.pill,
     borderWidth: 2,
-    borderColor: '#ccc',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: colors.borderInput,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  radioActive: { borderColor: GREEN },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: GREEN },
+  radioActive: { borderColor: colors.primary },
+  radioDot: {
+    width: 9,
+    height: 9,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+  },
+
+  // Ringkasan harga
+  summaryRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  summaryLabel: { fontSize: font.body, color: colors.muted },
+  summaryValue: { fontSize: font.body, color: colors.muted, fontWeight: "600" },
+  totalRow: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  totalLabel: { fontSize: font.heading, fontWeight: "900", color: colors.ink },
+  totalValue: { fontSize: font.heading, fontWeight: "900", color: colors.primary },
+
+  // Tombol
+  checkoutBtn: { marginBottom: spacing.sm },
 });
