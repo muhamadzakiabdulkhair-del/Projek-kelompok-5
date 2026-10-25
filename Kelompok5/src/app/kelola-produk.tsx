@@ -1,354 +1,318 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useMemo, useState } from "react";
 import {
   Alert,
+  FlatList,
   Image,
-  SafeAreaView,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AppButton } from "@/components/app-button";
+import { AppInput } from "@/components/app-input";
+import { BottomNav } from "@/components/bottom-nav";
+import { EmptyState } from "@/components/empty-state";
+import { FilterChips } from "@/components/filter-chips";
+import { ScreenHeader } from "@/components/screen-header";
+import { SearchBar } from "@/components/search-bar";
+import { parseRole, tabsForRole } from "@/constants/navigation";
+import { colors, radius } from "@/constants/palette";
+import {
+  CATEGORIES,
+  CATEGORY_IMAGES,
+  PRODUCTS,
+  formatRupiah,
+  type Category,
+  type Product,
+} from "@/data/products";
 
-const GREEN = "#087F50";
-const DARK = "#0F1F17";
-const BG = "#F5F7F5";
+type FormErrors = { name?: string; price?: string; stock?: string };
 
-const initialProducts = [
-  { id: "1", name: "Uwell Caliburn G2", sub: "Pod System", category: "Pod",  price: "450000", stock: "15", image: require("../../assets/images/Pod.png") },
-  { id: "2", name: "Vaporesso XROS 3",  sub: "Pod System", category: "Mod",  price: "550000", stock: "20", image: require("../../assets/images/Mod.png") },
-  { id: "3", name: "Liquid Naked 100",  sub: "Strawberry", category: "Liquid", price: "150000", stock: "35", image: require("../../assets/images/Liquid.png") },
-  { id: "4", name: "Coil Geekvape",     sub: "Coil",       category: "Coil",  price: "120000", stock: "50", image: require("../../assets/images/Coil.png") },
-  { id: "5", name: "Mod Voopoo Drag X", sub: "Mod",        category: "Mod",  price: "1200000", stock: "10", image: require("../../assets/images/Mod.png") },
-];
-
-const imgByCategory: Record<string, any> = {
-  Pod: require("../../assets/images/Pod.png"),
-  Mod: require("../../assets/images/Mod.png"),
-  Liquid: require("../../assets/images/Liquid.png"),
-  Coil: require("../../assets/images/Coil.png"),
-  Aksesori: require("../../assets/images/Coil.png"),
-};
-
-function rupiah(v: string) {
-  return "Rp " + (Number(v) || 0).toLocaleString("id-ID");
+function confirmDelete(name: string, onYes: () => void) {
+  if (Platform.OS === "web") {
+    if (window.confirm(`Yakin hapus ${name}?`)) onYes();
+    return;
+  }
+  Alert.alert("Hapus produk", `Yakin hapus ${name}?`, [
+    { text: "Batal", style: "cancel" },
+    { text: "Hapus", style: "destructive", onPress: onYes },
+  ]);
 }
-
-type Product = { id: string; name: string; sub: string; category: string; price: string; stock: string; image: any };
 
 export default function KelolaProdukScreen() {
   const router = useRouter();
-  const { role } = useLocalSearchParams<{ role?: string }>();
-  const isOwner = role !== "karyawan";
+  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+  const role = parseRole(roleParam) === "karyawan" ? "karyawan" : "owner";
 
-  // Nav tabs sesuai role
-  const NAV_TABS = isOwner
-    ? [
-        { name: "Dashboard", icon: "📊" },
-        { name: "Produk",    icon: "📦" },
-        { name: "Laporan",   icon: "📈" },
-        { name: "Profil",    icon: "👤" },
-      ]
-    : [
-        { name: "Produk",  icon: "📦" },
-        { name: "Pesanan", icon: "📋" },
-        { name: "Profil",  icon: "👤" },
-      ];
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("Semua");
-  const [activeTab, setActiveTab] = useState("Produk");
+
+  // Form tambah / edit
   const [formVisible, setFormVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [sub, setSub] = useState("");
-  const [category, setCategory] = useState("Pod");
+  const [category, setCategory] = useState<Category>("Pod");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const filtered = useMemo(() => products.filter((p) => {
-    const ms = p.name.toLowerCase().includes(search.toLowerCase());
-    const mc = catFilter === "Semua" || p.category === catFilter;
-    return ms && mc;
-  }), [products, search, catFilter]);
+  const filtered = useMemo(
+    () =>
+      products.filter((p) => {
+        const matchSearch = p.name.toLowerCase().includes(search.trim().toLowerCase());
+        return matchSearch && (catFilter === "Semua" || p.category === catFilter);
+      }),
+    [products, search, catFilter],
+  );
 
-  const lowStock = products.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 5).length;
-  const outStock = products.filter((p) => Number(p.stock) <= 0).length;
+  const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const outStock = products.filter((p) => p.stock <= 0).length;
 
-  function openAdd() {
-    setEditingId(null); setName(""); setSub(""); setCategory("Pod"); setPrice(""); setStock("");
+  function openForm(p?: Product) {
+    setEditingId(p?.id ?? null);
+    setName(p?.name ?? "");
+    setSub(p?.sub ?? "");
+    setCategory(p?.category ?? "Pod");
+    setPrice(p ? String(p.price) : "");
+    setStock(p ? String(p.stock) : "");
+    setErrors({});
     setFormVisible(true);
   }
 
-  function openEdit(p: Product) {
-    setEditingId(p.id); setName(p.name); setSub(p.sub); setCategory(p.category); setPrice(p.price); setStock(p.stock);
-    setFormVisible(true);
+  function validate(): FormErrors {
+    const e: FormErrors = {};
+    if (!name.trim()) e.name = "Nama produk wajib diisi.";
+    if (!price.trim()) e.price = "Harga wajib diisi.";
+    else if (!/^\d+$/.test(price.trim()) || Number(price) <= 0) e.price = "Harga harus berupa angka lebih dari 0.";
+    if (!stock.trim()) e.stock = "Stok wajib diisi.";
+    else if (!/^\d+$/.test(stock.trim())) e.stock = "Stok harus berupa angka (0 atau lebih).";
+    return e;
   }
 
   function save() {
-    if (!name.trim() || !price.trim() || !stock.trim()) {
-      Alert.alert("Data belum lengkap", "Isi nama, harga, dan stok.");
-      return;
-    }
-    const prod: Product = {
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length > 0) return;
+
+    const existing = products.find((p) => p.id === editingId);
+    const next: Product = {
       id: editingId ?? String(Date.now()),
-      name: name.trim(), sub: sub.trim() || category,
-      category, price: String(Math.floor(Number(price))),
-      stock: String(Math.floor(Number(stock))),
-      image: imgByCategory[category] ?? imgByCategory.Pod,
+      name: name.trim(),
+      sub: sub.trim() || category,
+      category,
+      price: Number(price),
+      stock: Number(stock),
+      rating: existing?.rating ?? 0,
+      reviews: existing?.reviews ?? 0,
+      description: existing?.description ?? "Belum ada deskripsi.",
+      image: CATEGORY_IMAGES[category],
     };
-    if (editingId) {
-      setProducts((old) => old.map((p) => p.id === editingId ? prod : p));
-    } else {
-      setProducts((old) => [prod, ...old]);
-    }
+    setProducts((old) => (editingId ? old.map((p) => (p.id === editingId ? next : p)) : [next, ...old]));
     setFormVisible(false);
   }
 
-  function del(p: Product) {
-    Alert.alert("Hapus produk", `Yakin hapus ${p.name}?`, [
-      { text: "Batal", style: "cancel" },
-      { text: "Hapus", style: "destructive", onPress: () => setProducts((old) => old.filter((x) => x.id !== p.id)) },
-    ]);
-  }
+  const addButton = (
+    <AppButton compact icon="add" label="Tambah" onPress={() => openForm()} />
+  );
+
+  const listHeader = (
+    <View style={styles.statRow}>
+      <View style={styles.stat}>
+        <Ionicons name="cube" size={20} color={colors.primary} />
+        <Text style={styles.statNum}>{products.length}</Text>
+        <Text style={styles.statLabel}>Total Produk</Text>
+      </View>
+      <View style={[styles.stat, { backgroundColor: colors.warningSoft }]}>
+        <Ionicons name="warning" size={20} color={colors.warning} />
+        <Text style={[styles.statNum, { color: colors.warning }]}>{lowStock}</Text>
+        <Text style={styles.statLabel}>Stok Menipis</Text>
+      </View>
+      <View style={[styles.stat, { backgroundColor: colors.dangerSoft }]}>
+        <Ionicons name="close-circle" size={20} color={colors.danger} />
+        <Text style={[styles.statNum, { color: colors.danger }]}>{outStock}</Text>
+        <Text style={styles.statLabel}>Stok Habis</Text>
+      </View>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
+      <ScreenHeader
+        title="Kelola Produk"
+        subtitle={role === "owner" ? "Owner" : "Karyawan"}
+        right={addButton}
+      />
 
-      {/* HEADER */}
-      <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <Text style={s.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Kelola Produk</Text>
-        <TouchableOpacity style={s.addHeaderBtn} onPress={openAdd}>
-          <Text style={s.addHeaderBtnText}>+ Tambah Produk</Text>
-        </TouchableOpacity>
+      <View style={styles.filters}>
+        <SearchBar value={search} onChangeText={setSearch} />
+        <FilterChips options={["Semua", ...CATEGORIES]} value={catFilter} onChange={setCatFilter} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-
-        {/* SEARCH */}
-        <View style={s.searchBox}>
-          <Text style={s.searchIcon}>🔍</Text>
-          <TextInput
-            style={s.searchInput}
-            placeholder="Cari produk..."
-            placeholderTextColor="#9AAEA4"
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Text style={s.searchClear}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* STAT CARDS */}
-        <View style={s.statRow}>
-          <View style={s.statCard}>
-            <Text style={s.statIcon}>📦</Text>
-            <Text style={s.statNum}>{products.length}</Text>
-            <Text style={s.statLabel}>Total Produk</Text>
-          </View>
-          <View style={[s.statCard, { backgroundColor: "#FFFBEE" }]}>
-            <Text style={s.statIcon}>⚠️</Text>
-            <Text style={[s.statNum, { color: "#C08000" }]}>{lowStock}</Text>
-            <Text style={s.statLabel}>Stok Menipis</Text>
-          </View>
-          <View style={[s.statCard, { backgroundColor: "#FFF0F0" }]}>
-            <Text style={s.statIcon}>❌</Text>
-            <Text style={[s.statNum, { color: "#C03030" }]}>{outStock}</Text>
-            <Text style={s.statLabel}>Stok Habis</Text>
-          </View>
-        </View>
-
-        {/* FILTER KATEGORI */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
-          {["Semua","Pod","Mod","Liquid","Coil","Aksesori"].map((c) => (
-            <TouchableOpacity
-              key={c}
-              style={[s.chip, catFilter === c && s.chipActive]}
-              onPress={() => setCatFilter(c)}
-            >
-              <Text style={[s.chipText, catFilter === c && s.chipTextActive]}>{c}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* LIST PRODUK */}
-        {filtered.map((p) => {
-          const qty = Number(p.stock);
-          const stockColor = qty <= 0 ? "#C03030" : qty <= 5 ? "#C08000" : GREEN;
-          const stockLabel = qty <= 0 ? "Stok habis" : qty <= 5 ? `Stok menipis · ${qty}` : `Stok: ${qty}`;
+      <FlatList
+        data={filtered}
+        keyExtractor={(p) => p.id}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={<EmptyState icon="cube-outline" title="Produk tidak ditemukan" message="Coba kata kunci atau kategori lain." />}
+        renderItem={({ item: p }) => {
+          const stockColor = p.stock <= 0 ? colors.danger : p.stock <= 5 ? colors.warning : colors.primary;
+          const stockLabel = p.stock <= 0 ? "Stok habis" : p.stock <= 5 ? `Stok menipis · ${p.stock}` : `Stok: ${p.stock}`;
           return (
-            <View key={p.id} style={s.productRow}>
-              <View style={s.productImgWrap}>
-                <Image source={p.image} style={s.productImg} resizeMode="contain" />
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push({ pathname: "/produk/[id]", params: { id: p.id } })}
+            >
+              <View style={styles.imgWrap}>
+                <Image source={p.image} style={styles.img} resizeMode="contain" />
               </View>
-              <View style={s.productInfo}>
-                <Text style={s.productSub}>{p.sub}</Text>
-                <Text style={s.productName}>{p.name}</Text>
-                <Text style={s.productPrice}>{rupiah(p.price)}</Text>
-                <Text style={[s.stockText, { color: stockColor }]}>{stockLabel}</Text>
+              <View style={styles.info}>
+                <Text style={styles.sub}>{p.sub}</Text>
+                <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
+                <Text style={styles.price}>{formatRupiah(p.price)}</Text>
+                <Text style={[styles.stock, { color: stockColor }]}>{stockLabel}</Text>
               </View>
-              <View style={s.productActions}>
-                <TouchableOpacity style={s.editBtn} onPress={() => openEdit(p)}>
-                  <Text style={s.editIcon}>✏️</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.delBtn} onPress={() => del(p)}>
-                  <Text style={s.delIcon}>🗑</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })}
-
-        {filtered.length === 0 && (
-          <View style={s.empty}>
-            <Text style={s.emptyTitle}>Produk tidak ditemukan</Text>
-          </View>
-        )}
-
-        {/* FORM TAMBAH / EDIT */}
-        {formVisible && (
-          <View style={s.formCard}>
-            <View style={s.formHeader}>
-              <Text style={s.formTitle}>{editingId ? "Edit Produk" : "Tambah Produk"}</Text>
-              <TouchableOpacity onPress={() => setFormVisible(false)}>
-                <Text style={s.formClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={s.inputLabel}>Nama produk</Text>
-            <TextInput style={s.input} value={name} onChangeText={setName} placeholder="Nama produk" placeholderTextColor="#9AAEA4" />
-
-            <Text style={s.inputLabel}>Sub / Deskripsi singkat</Text>
-            <TextInput style={s.input} value={sub} onChangeText={setSub} placeholder="Contoh: Pod System · Hitam" placeholderTextColor="#9AAEA4" />
-
-            <Text style={s.inputLabel}>Kategori</Text>
-            <View style={s.catOptions}>
-              {["Pod","Mod","Liquid","Coil","Aksesori"].map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[s.catOpt, category === c && s.catOptActive]}
-                  onPress={() => setCategory(c)}
+              <View style={styles.actions}>
+                <Pressable style={styles.editBtn} onPress={() => openForm(p)} accessibilityLabel={`Edit ${p.name}`}>
+                  <Ionicons name="create-outline" size={18} color={colors.primary} />
+                </Pressable>
+                <Pressable
+                  style={styles.delBtn}
+                  onPress={() => confirmDelete(p.name, () => setProducts((old) => old.filter((x) => x.id !== p.id)))}
+                  accessibilityLabel={`Hapus ${p.name}`}
                 >
-                  <Text style={[s.catOptText, category === c && s.catOptTextActive]}>{c}</Text>
-                </TouchableOpacity>
-              ))}
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </Pressable>
+              </View>
+            </Pressable>
+          );
+        }}
+      />
+
+      <Modal visible={formVisible} animationType="slide" transparent onRequestClose={() => setFormVisible(false)}>
+        <View style={styles.backdrop}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={styles.sheet}>
+              <View style={styles.sheetHead}>
+                <Text style={styles.sheetTitle}>{editingId ? "Edit Produk" : "Tambah Produk"}</Text>
+                <Pressable onPress={() => setFormVisible(false)} hitSlop={10} accessibilityLabel="Tutup form">
+                  <Ionicons name="close" size={22} color={colors.ink} />
+                </Pressable>
+              </View>
+
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                <AppInput
+                  label="Nama produk"
+                  placeholder="Contoh: Uwell Caliburn G2"
+                  value={name}
+                  onChangeText={setName}
+                  error={errors.name}
+                />
+                <AppInput
+                  label="Deskripsi singkat"
+                  placeholder="Contoh: Pod System · Hitam"
+                  value={sub}
+                  onChangeText={setSub}
+                />
+
+                <Text style={styles.fieldLabel}>Kategori</Text>
+                <View style={styles.catOptions}>
+                  {CATEGORIES.map((c) => (
+                    <Pressable key={c} style={[styles.catOpt, category === c && styles.catOptActive]} onPress={() => setCategory(c)}>
+                      <Text style={[styles.catOptText, category === c && styles.catOptTextActive]}>{c}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <AppInput
+                  label="Harga (Rp)"
+                  placeholder="Contoh: 450000"
+                  keyboardType="numeric"
+                  value={price}
+                  onChangeText={setPrice}
+                  error={errors.price}
+                />
+                <AppInput
+                  label="Stok"
+                  placeholder="Jumlah stok"
+                  keyboardType="numeric"
+                  value={stock}
+                  onChangeText={setStock}
+                  error={errors.stock}
+                />
+
+                <AppButton label={editingId ? "Simpan Perubahan" : "Simpan Produk"} icon="checkmark" onPress={save} />
+              </ScrollView>
             </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
 
-            <Text style={s.inputLabel}>Harga (Rp)</Text>
-            <TextInput style={s.input} value={price} onChangeText={setPrice} placeholder="Contoh: 450000" keyboardType="numeric" placeholderTextColor="#9AAEA4" />
-
-            <Text style={s.inputLabel}>Stok</Text>
-            <TextInput style={s.input} value={stock} onChangeText={setStock} placeholder="Jumlah stok" keyboardType="numeric" placeholderTextColor="#9AAEA4" />
-
-            <TouchableOpacity style={s.saveBtn} onPress={save}>
-              <Text style={s.saveBtnText}>{editingId ? "Simpan Perubahan" : "Simpan Produk"}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-      </ScrollView>
-
-      {/* BOTTOM NAV */}
-      <View style={s.bottomNav}>
-        {NAV_TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.name}
-            style={s.navItem}
-            onPress={() => {
-              setActiveTab(tab.name);
-              if (tab.name === "Dashboard") router.push("/admin/dashboard");
-              if (tab.name === "Laporan") router.push("/admin/laporan" as any);
-              if (tab.name === "Pesanan") router.push("/karyawan/pesanan" as any);
-              if (tab.name === "Profil") router.push("/karyawan/profil" as any);
-            }}
-          >
-            <Text style={s.navIcon}>{tab.icon}</Text>
-            <Text style={[s.navLabel, activeTab === tab.name && s.navLabelActive]}>{tab.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <BottomNav tabs={tabsForRole(role)} active="produk" />
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  header: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 14, paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1, borderBottomColor: "#E8EEE8", gap: 10,
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
+  filters: { paddingHorizontal: 14, paddingTop: 12, gap: 10 },
+  content: { padding: 14, gap: 10, flexGrow: 1 },
+  statRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  stat: {
+    flex: 1, backgroundColor: colors.primarySoft, borderRadius: radius.md,
+    alignItems: "center", paddingVertical: 12, gap: 2,
   },
-  backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#E8F5EE", alignItems: "center", justifyContent: "center" },
-  backIcon: { color: GREEN, fontSize: 18, fontWeight: "700" },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "800", color: DARK },
-  addHeaderBtn: { backgroundColor: GREEN, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },
-  addHeaderBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  content: { padding: 14, paddingBottom: 20 },
-  searchBox: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: "#FFFFFF", borderRadius: 12,
-    borderWidth: 1, borderColor: "#DDE8E2",
-    paddingHorizontal: 12, marginBottom: 12, height: 46,
+  statNum: { fontSize: 20, fontWeight: "900", color: colors.primary },
+  statLabel: { fontSize: 10, color: colors.muted, fontWeight: "600" },
+  row: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: colors.surface, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.border, padding: 10,
   },
-  searchIcon: { fontSize: 16, marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 13, color: DARK },
-  searchClear: { color: GREEN, fontSize: 14, paddingHorizontal: 4 },
-  statRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  statCard: { flex: 1, backgroundColor: "#E8F5EE", borderRadius: 14, padding: 10, alignItems: "center", gap: 4 },
-  statIcon: { fontSize: 20 },
-  statNum: { fontSize: 22, fontWeight: "800", color: GREEN },
-  statLabel: { fontSize: 10, color: "#6A8A74", textAlign: "center" },
-  chips: { gap: 8, paddingBottom: 14 },
-  chip: { borderWidth: 1, borderColor: "#DDE8E2", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: "#FFFFFF" },
-  chipActive: { backgroundColor: GREEN, borderColor: GREEN },
-  chipText: { fontSize: 12, color: "#6A8A74", fontWeight: "600" },
-  chipTextActive: { color: "#FFFFFF", fontWeight: "700" },
-  productRow: {
-    flexDirection: "row", backgroundColor: "#FFFFFF",
-    borderRadius: 16, padding: 12, marginBottom: 10,
-    borderWidth: 1, borderColor: "#E8EEE8", alignItems: "center", gap: 12,
+  imgWrap: {
+    width: 70, height: 70, borderRadius: radius.md, backgroundColor: colors.tint,
+    alignItems: "center", justifyContent: "center", padding: 6,
   },
-  productImgWrap: { width: 72, height: 80, borderRadius: 12, backgroundColor: "#E8F5EE", padding: 8, alignItems: "center", justifyContent: "center" },
-  productImg: { width: "100%", height: "100%" },
-  productInfo: { flex: 1 },
-  productSub: { fontSize: 10, color: "#9AAEA4", marginBottom: 2 },
-  productName: { fontSize: 14, fontWeight: "700", color: DARK, marginBottom: 3 },
-  productPrice: { fontSize: 14, fontWeight: "800", color: GREEN, marginBottom: 3 },
-  stockText: { fontSize: 11, fontWeight: "700" },
-  productActions: { gap: 8 },
-  editBtn: { width: 34, height: 34, borderRadius: 8, backgroundColor: "#E8F5EE", alignItems: "center", justifyContent: "center" },
-  editIcon: { fontSize: 16 },
-  delBtn: { width: 34, height: 34, borderRadius: 8, backgroundColor: "#FFF0F0", alignItems: "center", justifyContent: "center" },
-  delIcon: { fontSize: 16 },
-  empty: { alignItems: "center", padding: 32 },
-  emptyTitle: { fontSize: 15, fontWeight: "700", color: DARK },
-  formCard: { backgroundColor: "#FFFFFF", borderRadius: 18, padding: 16, marginTop: 10, borderWidth: 1, borderColor: "#E0EAE4", gap: 10 },
-  formHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  formTitle: { fontSize: 17, fontWeight: "800", color: DARK },
-  formClose: { color: "#9AAEA4", fontSize: 18, padding: 4 },
-  inputLabel: { fontSize: 12, fontWeight: "700", color: DARK },
-  input: { borderWidth: 1, borderColor: "#DDE8E2", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, color: DARK, backgroundColor: "#F8FBF9" },
-  catOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  catOpt: { borderWidth: 1, borderColor: "#DDE8E2", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7 },
-  catOptActive: { backgroundColor: GREEN, borderColor: GREEN },
-  catOptText: { fontSize: 12, color: "#6A8A74" },
-  catOptTextActive: { color: "#FFFFFF", fontWeight: "700" },
-  saveBtn: { backgroundColor: GREEN, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
-  saveBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
-  bottomNav: { flexDirection: "row", backgroundColor: "#FFFFFF", borderTopWidth: 1, borderTopColor: "#E8EEE8", paddingVertical: 8, paddingHorizontal: 4 },
-  navItem: { flex: 1, alignItems: "center", gap: 2 },
-  navIcon: { fontSize: 22 },
-  navLabel: { fontSize: 10, color: "#9AAEA4", fontWeight: "600" },
-  navLabelActive: { color: GREEN, fontWeight: "800" },
+  img: { width: "100%", height: "100%" },
+  info: { flex: 1, gap: 1 },
+  sub: { fontSize: 10, color: colors.placeholder },
+  name: { fontSize: 14, fontWeight: "800", color: colors.ink },
+  price: { fontSize: 13, fontWeight: "800", color: colors.primary },
+  stock: { fontSize: 11, fontWeight: "700" },
+  actions: { gap: 8 },
+  editBtn: {
+    width: 34, height: 34, borderRadius: 10, backgroundColor: colors.primarySoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  delBtn: {
+    width: 34, height: 34, borderRadius: 10, backgroundColor: colors.dangerSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(10,34,24,0.55)" },
+  sheet: {
+    maxHeight: "92%", backgroundColor: colors.surface, padding: 18,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+  },
+  sheetHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  sheetTitle: { fontSize: 18, fontWeight: "900", color: colors.ink },
+  fieldLabel: { fontSize: 12, fontWeight: "700", color: colors.ink, marginBottom: 6 },
+  catOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
+  catOpt: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: colors.borderInput, backgroundColor: colors.surface,
+  },
+  catOptActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  catOptText: { fontSize: 12, fontWeight: "700", color: colors.muted },
+  catOptTextActive: { color: colors.white },
 });
