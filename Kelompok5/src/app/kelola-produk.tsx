@@ -1,318 +1,318 @@
-import { useMemo, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useMemo, useState } from "react";
 import {
   Alert,
+  FlatList,
   Image,
-  SafeAreaView,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AppButton } from "@/components/app-button";
+import { AppInput } from "@/components/app-input";
+import { BottomNav } from "@/components/bottom-nav";
+import { EmptyState } from "@/components/empty-state";
+import { FilterChips } from "@/components/filter-chips";
+import { ScreenHeader } from "@/components/screen-header";
+import { SearchBar } from "@/components/search-bar";
+import { parseRole, tabsForRole } from "@/constants/navigation";
+import { colors, radius } from "@/constants/palette";
+import {
+  CATEGORIES,
+  CATEGORY_IMAGES,
+  PRODUCTS,
+  formatRupiah,
+  type Category,
+  type Product,
+} from "@/data/products";
 
-const GREEN = '#087F50';
-const DARK = '#16352A';
-const LIGHT_GREEN = '#E5F4EC';
-const BG = '#F7F9F7';
+type FormErrors = { name?: string; price?: string; stock?: string };
 
-const initialProducts = [
-  { id: '1', name: 'Uwell Caliburn G2', category: 'Pod', price: '450000', stock: '20', image: require('../../assets/images/Pod.png') },
-  { id: '2', name: 'Vaporesso XROS 3', category: 'Mod', price: '550000', stock: '8', image: require('../../assets/images/Mod.png') },
-  { id: '3', name: 'Liquid Strawberry', category: 'Liquid', price: '150000', stock: '3', image: require('../../assets/images/Liquid.png') },
-  { id: '4', name: 'Coil Replacement', category: 'Coil', price: '120000', stock: '0', image: require('../../assets/images/Coil.png') },
-];
-
-const imageByCategory: Record<string, any> = {
-  Pod: require('../../assets/images/Pod.png'),
-  Mod: require('../../assets/images/Mod.png'),
-  Liquid: require('../../assets/images/Liquid.png'),
-  Coil: require('../../assets/images/Coil.png'),
-  Aksesori: require('../../assets/images/Coil.png'),
-};
-
-function rupiah(value: string) {
-  const number = Number(value) || 0;
-  return 'Rp ' + number.toLocaleString('id-ID');
+function confirmDelete(name: string, onYes: () => void) {
+  if (Platform.OS === "web") {
+    if (window.confirm(`Yakin hapus ${name}?`)) onYes();
+    return;
+  }
+  Alert.alert("Hapus produk", `Yakin hapus ${name}?`, [
+    { text: "Batal", style: "cancel" },
+    { text: "Hapus", style: "destructive", onPress: onYes },
+  ]);
 }
-
-type Product = {
-  id: string;
-  name: string;
-  category: string;
-  price: string;
-  stock: string;
-  image: any;
-};
 
 export default function KelolaProdukScreen() {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('Semua');
+  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+  const role = parseRole(roleParam) === "karyawan" ? "karyawan" : "owner";
+
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState("Semua");
+
+  // Form tambah / edit
   const [formVisible, setFormVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('Pod');
-  const [price, setPrice] = useState('');
-  const [stock, setStock] = useState('');
+  const [name, setName] = useState("");
+  const [sub, setSub] = useState("");
+  const [category, setCategory] = useState<Category>("Pod");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const filtered = useMemo(() => products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'Semua' || p.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  }), [products, search, categoryFilter]);
+  const filtered = useMemo(
+    () =>
+      products.filter((p) => {
+        const matchSearch = p.name.toLowerCase().includes(search.trim().toLowerCase());
+        return matchSearch && (catFilter === "Semua" || p.category === catFilter);
+      }),
+    [products, search, catFilter],
+  );
 
-  const lowStockCount = products.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 5).length;
-  const outStockCount = products.filter((p) => Number(p.stock) <= 0).length;
+  const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const outStock = products.filter((p) => p.stock <= 0).length;
 
-  function openAddForm() {
-    setEditingId(null);
-    setName('');
-    setCategory('Pod');
-    setPrice('');
-    setStock('');
+  function openForm(p?: Product) {
+    setEditingId(p?.id ?? null);
+    setName(p?.name ?? "");
+    setSub(p?.sub ?? "");
+    setCategory(p?.category ?? "Pod");
+    setPrice(p ? String(p.price) : "");
+    setStock(p ? String(p.stock) : "");
+    setErrors({});
     setFormVisible(true);
   }
 
-  function openEditForm(product: Product) {
-    setEditingId(product.id);
-    setName(product.name);
-    setCategory(product.category);
-    setPrice(product.price);
-    setStock(product.stock);
-    setFormVisible(true);
+  function validate(): FormErrors {
+    const e: FormErrors = {};
+    if (!name.trim()) e.name = "Nama produk wajib diisi.";
+    if (!price.trim()) e.price = "Harga wajib diisi.";
+    else if (!/^\d+$/.test(price.trim()) || Number(price) <= 0) e.price = "Harga harus berupa angka lebih dari 0.";
+    if (!stock.trim()) e.stock = "Stok wajib diisi.";
+    else if (!/^\d+$/.test(stock.trim())) e.stock = "Stok harus berupa angka (0 atau lebih).";
+    return e;
   }
 
-  function saveProduct() {
-    if (!name.trim() || !price.trim() || !stock.trim()) {
-      Alert.alert('Data belum lengkap', 'Isi nama, harga, dan stok produk terlebih dahulu.');
-      return;
-    }
-    if (Number(price) < 0 || Number(stock) < 0 || !Number.isFinite(Number(price)) || !Number.isFinite(Number(stock))) {
-      Alert.alert('Data tidak valid', 'Harga dan stok harus berupa angka nol atau lebih.');
-      return;
-    }
-    const product: Product = {
+  function save() {
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length > 0) return;
+
+    const existing = products.find((p) => p.id === editingId);
+    const next: Product = {
       id: editingId ?? String(Date.now()),
       name: name.trim(),
+      sub: sub.trim() || category,
       category,
-      price: String(Math.floor(Number(price))),
-      stock: String(Math.floor(Number(stock))),
-      image: imageByCategory[category] ?? imageByCategory.Pod,
+      price: Number(price),
+      stock: Number(stock),
+      rating: existing?.rating ?? 0,
+      reviews: existing?.reviews ?? 0,
+      description: existing?.description ?? "Belum ada deskripsi.",
+      image: CATEGORY_IMAGES[category],
     };
-    if (editingId) {
-      setProducts((old) => old.map((p) => p.id === editingId ? product : p));
-    } else {
-      setProducts((old) => [product, ...old]);
-    }
+    setProducts((old) => (editingId ? old.map((p) => (p.id === editingId ? next : p)) : [next, ...old]));
     setFormVisible(false);
   }
 
-  function deleteProduct(product: Product) {
-    Alert.alert('Hapus produk', `Yakin ingin menghapus ${product.name}?`, [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Hapus', style: 'destructive', onPress: () => setProducts((old) => old.filter((p) => p.id !== product.id)) },
-    ]);
-  }
+  const addButton = (
+    <AppButton compact icon="add" label="Tambah" onPress={() => openForm()} />
+  );
+
+  const listHeader = (
+    <View style={styles.statRow}>
+      <View style={styles.stat}>
+        <Ionicons name="cube" size={20} color={colors.primary} />
+        <Text style={styles.statNum}>{products.length}</Text>
+        <Text style={styles.statLabel}>Total Produk</Text>
+      </View>
+      <View style={[styles.stat, { backgroundColor: colors.warningSoft }]}>
+        <Ionicons name="warning" size={20} color={colors.warning} />
+        <Text style={[styles.statNum, { color: colors.warning }]}>{lowStock}</Text>
+        <Text style={styles.statLabel}>Stok Menipis</Text>
+      </View>
+      <View style={[styles.stat, { backgroundColor: colors.dangerSoft }]}>
+        <Ionicons name="close-circle" size={20} color={colors.danger} />
+        <Text style={[styles.statNum, { color: colors.danger }]}>{outStock}</Text>
+        <Text style={styles.statLabel}>Stok Habis</Text>
+      </View>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backText}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Kelola Produk</Text>
-          <Text style={styles.headerSubtitle}>Atur produk dan persediaan toko</Text>
-        </View>
-        <TouchableOpacity style={styles.addHeaderButton} onPress={openAddForm}>
-          <Text style={styles.addHeaderText}>＋</Text>
-        </TouchableOpacity>
+      <ScreenHeader
+        title="Kelola Produk"
+        subtitle={role === "owner" ? "Owner" : "Karyawan"}
+        right={addButton}
+      />
+
+      <View style={styles.filters}>
+        <SearchBar value={search} onChangeText={setSearch} />
+        <FilterChips options={["Semua", ...CATEGORIES]} value={catFilter} onChange={setCatFilter} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>▣</Text>
-            <Text style={styles.statLabel}>Total Produk</Text>
-            <Text style={styles.statNumber}>{products.length}</Text>
-          </View>
-          <View style={[styles.statCard, styles.warningCard]}>
-            <Text style={styles.warningIcon}>⚠</Text>
-            <Text style={styles.statLabel}>Stok Menipis</Text>
-            <Text style={[styles.statNumber, styles.warningNumber]}>{lowStockCount}</Text>
-          </View>
-          <View style={[styles.statCard, styles.outCard]}>
-            <Text style={styles.outIcon}>!</Text>
-            <Text style={styles.statLabel}>Stok Habis</Text>
-            <Text style={[styles.statNumber, styles.outNumber]}>{outStockCount}</Text>
-          </View>
-        </View>
-
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Cari nama produk..."
-            placeholderTextColor="#89958E"
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && <TouchableOpacity onPress={() => setSearch('')}><Text style={styles.clearText}>✕</Text></TouchableOpacity>}
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Daftar Produk</Text>
-          <TouchableOpacity style={styles.addButton} onPress={openAddForm}>
-            <Text style={styles.addButtonText}>＋ Tambah</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-          {['Semua', 'Pod', 'Mod', 'Liquid', 'Coil', 'Aksesori'].map((item) => (
-            <TouchableOpacity key={item} style={[styles.filterChip, categoryFilter === item && styles.filterChipActive]} onPress={() => setCategoryFilter(item)}>
-              <Text style={[styles.filterText, categoryFilter === item && styles.filterTextActive]}>{item}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {filtered.map((product) => {
-          const quantity = Number(product.stock);
-          const stockLabel = quantity <= 0 ? 'Stok habis' : quantity <= 5 ? `Stok menipis: ${quantity} unit` : `Stok: ${quantity} unit`;
-          const stockColor = quantity <= 0 ? '#C43D3D' : quantity <= 5 ? '#B77909' : GREEN;
+      <FlatList
+        data={filtered}
+        keyExtractor={(p) => p.id}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={<EmptyState icon="cube-outline" title="Produk tidak ditemukan" message="Coba kata kunci atau kategori lain." />}
+        renderItem={({ item: p }) => {
+          const stockColor = p.stock <= 0 ? colors.danger : p.stock <= 5 ? colors.warning : colors.primary;
+          const stockLabel = p.stock <= 0 ? "Stok habis" : p.stock <= 5 ? `Stok menipis · ${p.stock}` : `Stok: ${p.stock}`;
           return (
-            <View key={product.id} style={styles.productCard}>
-              <View style={styles.productImageWrap}>
-                <Image source={product.image} style={styles.productImage} resizeMode="contain" />
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push({ pathname: "/produk/[id]", params: { id: p.id } })}
+            >
+              <View style={styles.imgWrap}>
+                <Image source={p.image} style={styles.img} resizeMode="contain" />
               </View>
-              <View style={styles.productDetails}>
-                <Text style={styles.categoryLabel}>{product.category}</Text>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.price}>{rupiah(product.price)}</Text>
-                <Text style={[styles.stockLabel, { color: stockColor }]}>{stockLabel}</Text>
-                <View style={styles.actions}>
-                  <TouchableOpacity style={styles.editButton} onPress={() => openEditForm(product)}>
-                    <Text style={styles.editButtonText}>✎ Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.stockButton} onPress={() => openEditForm(product)}>
-                    <Text style={styles.stockButtonText}>▣ Stok</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => deleteProduct(product)}>
-                    <Text style={styles.deleteButtonText}>Hapus</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.info}>
+                <Text style={styles.sub}>{p.sub}</Text>
+                <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
+                <Text style={styles.price}>{formatRupiah(p.price)}</Text>
+                <Text style={[styles.stock, { color: stockColor }]}>{stockLabel}</Text>
               </View>
-            </View>
+              <View style={styles.actions}>
+                <Pressable style={styles.editBtn} onPress={() => openForm(p)} accessibilityLabel={`Edit ${p.name}`}>
+                  <Ionicons name="create-outline" size={18} color={colors.primary} />
+                </Pressable>
+                <Pressable
+                  style={styles.delBtn}
+                  onPress={() => confirmDelete(p.name, () => setProducts((old) => old.filter((x) => x.id !== p.id)))}
+                  accessibilityLabel={`Hapus ${p.name}`}
+                >
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </Pressable>
+              </View>
+            </Pressable>
           );
-        })}
+        }}
+      />
 
-        {filtered.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Produk tidak ditemukan</Text>
-            <Text style={styles.emptyText}>Coba kata kunci atau kategori lain.</Text>
-          </View>
-        )}
+      <Modal visible={formVisible} animationType="slide" transparent onRequestClose={() => setFormVisible(false)}>
+        <View style={styles.backdrop}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={styles.sheet}>
+              <View style={styles.sheetHead}>
+                <Text style={styles.sheetTitle}>{editingId ? "Edit Produk" : "Tambah Produk"}</Text>
+                <Pressable onPress={() => setFormVisible(false)} hitSlop={10} accessibilityLabel="Tutup form">
+                  <Ionicons name="close" size={22} color={colors.ink} />
+                </Pressable>
+              </View>
 
-        {formVisible && (
-          <View style={styles.formCard}>
-            <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>{editingId ? 'Edit Produk' : 'Tambah Produk'}</Text>
-              <TouchableOpacity onPress={() => setFormVisible(false)}><Text style={styles.closeForm}>✕</Text></TouchableOpacity>
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                <AppInput
+                  label="Nama produk"
+                  placeholder="Contoh: Uwell Caliburn G2"
+                  value={name}
+                  onChangeText={setName}
+                  error={errors.name}
+                />
+                <AppInput
+                  label="Deskripsi singkat"
+                  placeholder="Contoh: Pod System · Hitam"
+                  value={sub}
+                  onChangeText={setSub}
+                />
+
+                <Text style={styles.fieldLabel}>Kategori</Text>
+                <View style={styles.catOptions}>
+                  {CATEGORIES.map((c) => (
+                    <Pressable key={c} style={[styles.catOpt, category === c && styles.catOptActive]} onPress={() => setCategory(c)}>
+                      <Text style={[styles.catOptText, category === c && styles.catOptTextActive]}>{c}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <AppInput
+                  label="Harga (Rp)"
+                  placeholder="Contoh: 450000"
+                  keyboardType="numeric"
+                  value={price}
+                  onChangeText={setPrice}
+                  error={errors.price}
+                />
+                <AppInput
+                  label="Stok"
+                  placeholder="Jumlah stok"
+                  keyboardType="numeric"
+                  value={stock}
+                  onChangeText={setStock}
+                  error={errors.stock}
+                />
+
+                <AppButton label={editingId ? "Simpan Perubahan" : "Simpan Produk"} icon="checkmark" onPress={save} />
+              </ScrollView>
             </View>
-            <Text style={styles.inputLabel}>Nama produk</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Masukkan nama produk" placeholderTextColor="#89958E" />
-            <Text style={styles.inputLabel}>Kategori</Text>
-            <View style={styles.categoryOptions}>
-              {['Pod', 'Mod', 'Liquid', 'Coil', 'Aksesori'].map((item) => (
-                <TouchableOpacity key={item} onPress={() => setCategory(item)} style={[styles.categoryOption, category === item && styles.categoryOptionActive]}>
-                  <Text style={[styles.categoryOptionText, category === item && styles.categoryOptionTextActive]}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.inputLabel}>Harga (angka rupiah)</Text>
-            <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="Contoh: 150000" keyboardType="numeric" placeholderTextColor="#89958E" />
-            <Text style={styles.inputLabel}>Stok</Text>
-            <TextInput style={styles.input} value={stock} onChangeText={setStock} placeholder="Jumlah stok" keyboardType="numeric" placeholderTextColor="#89958E" />
-            <TouchableOpacity style={styles.saveButton} onPress={saveProduct}>
-              <Text style={styles.saveButtonText}>{editingId ? 'Simpan Perubahan' : 'Simpan Produk'}</Text>
-            </TouchableOpacity>
-            <Text style={styles.formNote}>Data saat ini masih tersimpan sementara di state aplikasi, belum ke database.</Text>
-          </View>
-        )}
-      </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <BottomNav tabs={tabsForRole(role)} active="produk" />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: BG },
-  header: { minHeight: 72, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E9EEE9', gap: 12 },
-  backButton: { width: 38, height: 38, borderRadius: 12, backgroundColor: LIGHT_GREEN, alignItems: 'center', justifyContent: 'center' },
-  backText: { color: GREEN, fontSize: 32, lineHeight: 34 },
-  headerTitleWrap: { flex: 1 },
-  headerTitle: { color: DARK, fontSize: 19, fontWeight: '800' },
-  headerSubtitle: { color: '#7D8C82', fontSize: 11, marginTop: 3 },
-  addHeaderButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
-  addHeaderText: { color: '#FFFFFF', fontSize: 25, lineHeight: 28 },
-  content: { padding: 16, paddingBottom: 30 },
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
-  statCard: { flex: 1, minHeight: 104, borderRadius: 15, backgroundColor: LIGHT_GREEN, padding: 10, justifyContent: 'center' },
-  warningCard: { backgroundColor: '#FFF2D9' },
-  outCard: { backgroundColor: '#FBE8E8' },
-  statIcon: { color: GREEN, fontSize: 17, marginBottom: 4 },
-  warningIcon: { color: '#A86B00', fontSize: 17, marginBottom: 4 },
-  outIcon: { color: '#C43D3D', fontSize: 17, marginBottom: 4 },
-  statLabel: { color: '#52645A', fontSize: 10 },
-  statNumber: { color: GREEN, fontSize: 22, fontWeight: '800', marginTop: 2 },
-  warningNumber: { color: '#A86B00' },
-  outNumber: { color: '#C43D3D' },
-  searchBox: { height: 46, borderRadius: 13, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5EAE5', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginBottom: 22 },
-  searchIcon: { color: GREEN, fontSize: 24, marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 13, color: DARK },
-  clearText: { color: GREEN, paddingHorizontal: 4 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { color: DARK, fontSize: 17, fontWeight: '800' },
-  addButton: { backgroundColor: GREEN, borderRadius: 9, paddingHorizontal: 12, paddingVertical: 9 },
-  addButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
-  filters: { gap: 8, paddingBottom: 16 },
-  filterChip: { borderWidth: 1, borderColor: '#DDE5DE', backgroundColor: '#FFFFFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20 },
-  filterChipActive: { backgroundColor: GREEN, borderColor: GREEN },
-  filterText: { color: '#647268', fontSize: 11, fontWeight: '600' },
-  filterTextActive: { color: '#FFFFFF' },
-  productCard: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 11, marginBottom: 12, borderWidth: 1, borderColor: '#E8EDE8', gap: 12 },
-  productImageWrap: { width: 98, height: 112, borderRadius: 12, backgroundColor: LIGHT_GREEN, padding: 8, alignItems: 'center', justifyContent: 'center' },
-  productImage: { width: '100%', height: '100%' },
-  productDetails: { flex: 1, justifyContent: 'center' },
-  categoryLabel: { color: '#7D8C82', fontSize: 10, marginBottom: 3 },
-  productName: { color: DARK, fontSize: 13, fontWeight: '800', marginBottom: 5 },
-  price: { color: GREEN, fontSize: 13, fontWeight: '800', marginBottom: 5 },
-  stockLabel: { fontSize: 11, fontWeight: '700', marginBottom: 9 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  editButton: { backgroundColor: LIGHT_GREEN, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 7 },
-  editButtonText: { color: GREEN, fontSize: 10, fontWeight: '700' },
-  stockButton: { backgroundColor: '#FFF2D9', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 7 },
-  stockButtonText: { color: '#93600A', fontSize: 10, fontWeight: '700' },
-  deleteButton: { backgroundColor: '#FBE8E8', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 7 },
-  deleteButtonText: { color: '#C43D3D', fontSize: 10, fontWeight: '700' },
-  emptyState: { alignItems: 'center', padding: 28, gap: 8 },
-  emptyTitle: { color: DARK, fontSize: 16, fontWeight: '700' },
-  emptyText: { color: '#748078', fontSize: 12 },
-  formCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCE7DE', borderRadius: 16, padding: 15, marginTop: 12, gap: 8 },
-  formHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
-  formTitle: { color: DARK, fontSize: 17, fontWeight: '800' },
-  closeForm: { color: '#718078', fontSize: 18, padding: 4 },
-  inputLabel: { color: DARK, fontSize: 12, fontWeight: '700', marginTop: 4 },
-  input: { minHeight: 43, borderWidth: 1, borderColor: '#DDE5DE', borderRadius: 10, paddingHorizontal: 11, color: DARK, fontSize: 13, backgroundColor: '#FCFDFC' },
-  categoryOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  categoryOption: { borderWidth: 1, borderColor: '#DDE5DE', borderRadius: 18, paddingHorizontal: 11, paddingVertical: 7 },
-  categoryOptionActive: { backgroundColor: LIGHT_GREEN, borderColor: GREEN },
-  categoryOptionText: { color: '#647268', fontSize: 11 },
-  categoryOptionTextActive: { color: GREEN, fontWeight: '700' },
-  saveButton: { backgroundColor: GREEN, borderRadius: 10, alignItems: 'center', paddingVertical: 12, marginTop: 8 },
-  saveButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
-  formNote: { color: '#879289', fontSize: 10, lineHeight: 15, marginTop: 3 },
+  safe: { flex: 1, backgroundColor: colors.bg },
+  filters: { paddingHorizontal: 14, paddingTop: 12, gap: 10 },
+  content: { padding: 14, gap: 10, flexGrow: 1 },
+  statRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  stat: {
+    flex: 1, backgroundColor: colors.primarySoft, borderRadius: radius.md,
+    alignItems: "center", paddingVertical: 12, gap: 2,
+  },
+  statNum: { fontSize: 20, fontWeight: "900", color: colors.primary },
+  statLabel: { fontSize: 10, color: colors.muted, fontWeight: "600" },
+  row: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: colors.surface, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.border, padding: 10,
+  },
+  imgWrap: {
+    width: 70, height: 70, borderRadius: radius.md, backgroundColor: colors.tint,
+    alignItems: "center", justifyContent: "center", padding: 6,
+  },
+  img: { width: "100%", height: "100%" },
+  info: { flex: 1, gap: 1 },
+  sub: { fontSize: 10, color: colors.placeholder },
+  name: { fontSize: 14, fontWeight: "800", color: colors.ink },
+  price: { fontSize: 13, fontWeight: "800", color: colors.primary },
+  stock: { fontSize: 11, fontWeight: "700" },
+  actions: { gap: 8 },
+  editBtn: {
+    width: 34, height: 34, borderRadius: 10, backgroundColor: colors.primarySoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  delBtn: {
+    width: 34, height: 34, borderRadius: 10, backgroundColor: colors.dangerSoft,
+    alignItems: "center", justifyContent: "center",
+  },
+  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(10,34,24,0.55)" },
+  sheet: {
+    maxHeight: "92%", backgroundColor: colors.surface, padding: 18,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+  },
+  sheetHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  sheetTitle: { fontSize: 18, fontWeight: "900", color: colors.ink },
+  fieldLabel: { fontSize: 12, fontWeight: "700", color: colors.ink, marginBottom: 6 },
+  catOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
+  catOpt: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill,
+    borderWidth: 1, borderColor: colors.borderInput, backgroundColor: colors.surface,
+  },
+  catOptActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  catOptText: { fontSize: 12, fontWeight: "700", color: colors.muted },
+  catOptTextActive: { color: colors.white },
 });

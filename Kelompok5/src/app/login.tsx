@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -12,12 +13,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { mockLogin } from "@/mock/auth";
 
-export default function HomeScreen() {
+export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({
     visible: false,
     title: "",
@@ -26,11 +29,7 @@ export default function HomeScreen() {
 
   const showMessage = (title: string, message: string) => {
     if (Platform.OS === "web") {
-      setNotification({
-        visible: true,
-        title,
-        message,
-      });
+      setNotification({ visible: true, title, message });
     } else {
       Alert.alert(title, message);
     }
@@ -38,28 +37,33 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!notification.visible) return;
-
     const timer = setTimeout(() => {
-      setNotification({
-        visible: false,
-        title: "",
-        message: "",
-      });
+      setNotification({ visible: false, title: "", message: "" });
     }, 3000);
-
     return () => clearTimeout(timer);
   }, [notification]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password) {
       showMessage("Login", "Email dan kata sandi wajib diisi.");
       return;
     }
 
-    showMessage(
-      "Belum terhubung",
-      "Tampilan login sudah siap. Autentikasi akun akan kita buat pada tahap backend.",
-    );
+    setLoading(true);
+    try {
+      const result = mockLogin({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (result.ok) {
+        router.replace("/dashboard");
+      } else {
+        showMessage("Login gagal", result.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = () => {
@@ -74,14 +78,12 @@ export default function HomeScreen() {
             <View style={styles.notificationIcon}>
               <Text style={styles.notificationIconText}>✓</Text>
             </View>
-
             <View style={styles.notificationContent}>
               <Text style={styles.notificationTitle}>{notification.title}</Text>
               <Text style={styles.notificationMessage}>
                 {notification.message}
               </Text>
             </View>
-
             <Pressable
               onPress={() =>
                 setNotification({ visible: false, title: "", message: "" })
@@ -94,6 +96,7 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -107,11 +110,9 @@ export default function HomeScreen() {
             <View style={styles.logo}>
               <Text style={styles.logoIcon}>♨</Text>
             </View>
-
             <Text style={styles.brand}>
               Vape<Text style={styles.brandGreen}>Store</Text>
             </Text>
-
             <Text style={styles.tagline}>Your Vape, Our Priority</Text>
           </View>
 
@@ -121,7 +122,6 @@ export default function HomeScreen() {
                 <Text style={styles.activeTabText}>Login</Text>
                 <View style={styles.tabUnderline} />
               </View>
-
               <Pressable style={styles.inactiveTab} onPress={handleRegister}>
                 <Text style={styles.inactiveTabText}>Register</Text>
               </Pressable>
@@ -164,15 +164,12 @@ export default function HomeScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
               />
-
               <Pressable
                 onPress={() => setShowPassword(!showPassword)}
                 hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  showPassword
-                    ? "Sembunyikan kata sandi"
-                    : "Tampilkan kata sandi"
+                  showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"
                 }
               >
                 <Text style={styles.showPassword}>
@@ -184,7 +181,7 @@ export default function HomeScreen() {
             <Pressable
               style={styles.forgotButton}
               onPress={() =>
-                Alert.alert(
+                showMessage(
                   "Lupa kata sandi",
                   "Fitur pemulihan akun akan dibuat pada tahap berikutnya.",
                 )
@@ -197,11 +194,17 @@ export default function HomeScreen() {
               style={({ pressed }) => [
                 styles.loginButton,
                 pressed && styles.buttonPressed,
+                loading && styles.buttonDisabled,
               ]}
               onPress={handleLogin}
+              disabled={loading}
               accessibilityRole="button"
             >
-              <Text style={styles.loginButtonText}>Masuk</Text>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.loginButtonText}>Masuk</Text>
+              )}
             </Pressable>
 
             <View style={styles.dividerRow}>
@@ -209,10 +212,6 @@ export default function HomeScreen() {
               <Text style={styles.orText}>atau</Text>
               <View style={styles.divider} />
             </View>
-
-            <Text style={styles.socialNote}>
-              Login sosial akan ditambahkan jika diperlukan.
-            </Text>
 
             <View style={styles.registerRow}>
               <Text style={styles.registerText}>Belum punya akun? </Text>
@@ -370,6 +369,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#07865A",
   },
+  tabUnderline: {},
   inactiveTab: {
     flex: 1,
     alignItems: "center",
@@ -446,6 +446,9 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.8,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   loginButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
@@ -466,12 +469,6 @@ const styles = StyleSheet.create({
   orText: {
     fontSize: 12,
     color: "#8A948E",
-  },
-  socialNote: {
-    fontSize: 12,
-    textAlign: "center",
-    color: "#7B857F",
-    lineHeight: 19,
   },
   registerRow: {
     flexDirection: "row",

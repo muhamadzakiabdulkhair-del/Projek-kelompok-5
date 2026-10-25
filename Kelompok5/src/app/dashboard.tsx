@@ -1,734 +1,190 @@
-import { useState } from "react";
-import { Redirect } from "expo-router";
-import {
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useMemo, useState } from "react";
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { BottomNav } from "@/components/bottom-nav";
+import { BrandLogo } from "@/components/brand-logo";
+import { EmptyState } from "@/components/empty-state";
+import { ProductCard } from "@/components/product-card";
+import { SearchBar } from "@/components/search-bar";
+import { tabsForRole } from "@/constants/navigation";
+import { colors, radius } from "@/constants/palette";
+import { useCart } from "@/context/cart";
+import { CATEGORIES, CATEGORY_IMAGES, PRODUCTS, type Product } from "@/data/products";
 
-const GREEN = "#087F50";
-const DARK = "#16352A";
-const LIGHT_GREEN = "#E5F4EC";
-const BG = "#F7F9F7";
+const TOP_RATED = [...PRODUCTS].sort((a, b) => b.rating - a.rating).slice(0, 4);
 
-// Kategori produk menggunakan empat gambar yang tersedia
-const categories = [
-  { name: "Pod", image: require("../../assets/images/Pod.png") },
-  { name: "Mod", image: require("../../assets/images/Mod.png") },
-  { name: "Liquid", image: require("../../assets/images/Liquid.png") },
-  { name: "Coil", image: require("../../assets/images/Coil.png") },
-  { name: "Aksesori", image: require("../../assets/images/Coil.png") },
-];
-
-// Data produk sementara
-const products = [
-  {
-    id: "1",
-    name: "Uwell Caliburn G2",
-    category: "Pod",
-    price: 450000,
-    image: require("../../assets/images/Pod.png"),
-    color: "#DCE8E1",
-  },
-  {
-    id: "2",
-    name: "Vaporesso XROS 3",
-    category: "Mod",
-    price: 550000,
-    image: require("../../assets/images/Mod.png"),
-    color: "#E7E1D8",
-  },
-  {
-    id: "3",
-    name: "Liquid Strawberry",
-    category: "Liquid",
-    price: 150000,
-    image: require("../../assets/images/Liquid.png"),
-    color: "#F3E2DF",
-  },
-  {
-    id: "4",
-    name: "Coil Replacement",
-    category: "Coil",
-    price: 120000,
-    image: require("../../assets/images/Coil.png"),
-    color: "#E5E6F0",
-  },
-];
-
-function formatRupiah(price: number) {
-  return "Rp " + price.toLocaleString("id-ID");
-}
-
-export default function HomeScreen() {
+export default function DashboardScreen() {
   const router = useRouter();
+  const { add } = useCart();
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Semua");
-  const [activeTab, setActiveTab] = useState("Beranda");
-  const [cartCount, setCartCount] = useState(0);
+  const [category, setCategory] = useState<string>("Semua");
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.category.toLowerCase().includes(search.toLowerCase());
+  const filtered = useMemo(
+    () =>
+      PRODUCTS.filter((p) => {
+        const q = search.trim().toLowerCase();
+        const matchSearch = !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+        return matchSearch && (category === "Semua" || p.category === category);
+      }),
+    [search, category],
+  );
 
-    const matchesCategory =
-      selectedCategory === "Semua" ||
-      product.category.toLowerCase() === selectedCategory.toLowerCase();
+  const openDetail = (p: Product) => router.push({ pathname: "/produk/[id]", params: { id: p.id } });
 
-    return matchesSearch && matchesCategory;
-  });
+  const listHeader = (
+    <View>
+      <View style={styles.banner}>
+        <View style={styles.bannerText}>
+          <Text style={styles.bannerEye}>POD SYSTEM</Text>
+          <Text style={styles.bannerTitle}>{"RASA LEBIH\nNIKMAT"}</Text>
+          <Pressable style={styles.bannerBtn} onPress={() => setCategory("Pod")}>
+            <Text style={styles.bannerBtnText}>Belanja Sekarang</Text>
+          </Pressable>
+        </View>
+        <Ionicons name="cloud-outline" size={72} color="rgba(125,204,164,0.45)" />
+      </View>
+
+      <FlatList
+        horizontal
+        data={["Semua", ...CATEGORIES]}
+        keyExtractor={(c) => c}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.catList}
+        style={styles.catFlat}
+        renderItem={({ item }) => {
+          const active = category === item;
+          return (
+            <Pressable style={styles.catItem} onPress={() => setCategory(item)}>
+              <View style={[styles.catIcon, active && styles.catIconActive]}>
+                {item === "Semua" ? (
+                  <Ionicons name="grid" size={22} color={active ? colors.white : colors.primary} />
+                ) : (
+                  <Image source={CATEGORY_IMAGES[item as keyof typeof CATEGORY_IMAGES]} style={styles.catImg} resizeMode="contain" />
+                )}
+              </View>
+              <Text style={[styles.catName, active && styles.catNameActive]}>{item}</Text>
+            </Pressable>
+          );
+        }}
+      />
+
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionTitle}>{category === "Semua" ? "Semua Produk" : `Kategori ${category}`}</Text>
+        <Text style={styles.count}>{filtered.length} produk</Text>
+      </View>
+    </View>
+  );
+
+  const showPicks = category === "Semua" && search.trim() === "";
+  const listFooter = showPicks ? (
+    <View>
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionTitle}>Produk Pilihan</Text>
+        <Text style={styles.count}>Rating tertinggi</Text>
+      </View>
+      <FlatList
+        horizontal
+        data={TOP_RATED}
+        keyExtractor={(p) => "pick-" + p.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.pickList}
+        renderItem={({ item }) => (
+          <ProductCard product={item} style={styles.pickCard} onPress={() => openDetail(item)} onAdd={() => add(item.id)} />
+        )}
+      />
+    </View>
+  ) : null;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
 
-      {/* HEADER */}
       <View style={styles.header}>
-        <View style={styles.brand}>
-          <View style={styles.logo}>
-            <Text style={styles.logoIcon}>V</Text>
-          </View>
-
-          <Text style={styles.brandText}>
-            Vape<Text style={styles.brandAccent}>Store</Text>
-          </Text>
-        </View>
-
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.manageHeaderButton}
-            onPress={() => router.push("/kelola-produk")}
-          >
-            <Text style={styles.manageHeaderButtonText}>Kelola</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setActiveTab("Pesanan")}
-          >
-            <Text style={styles.headerIcon}>♧</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setActiveTab("Keranjang")}
-          >
-            <Text style={styles.headerIcon}>🛒</Text>
-            {cartCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+        <BrandLogo />
+        <Pressable style={styles.loginBtn} onPress={() => router.push("/pelanggan/login")} accessibilityLabel="Masuk">
+          <Ionicons name="person" size={18} color={colors.white} />
+        </Pressable>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
+      <View style={styles.searchWrap}>
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Cari produk, kategori, atau merek..." />
+      </View>
+
+      <FlatList
+        data={filtered}
+        keyExtractor={(p) => p.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.content}
-      >
-        {/* PENCARIAN */}
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>⌕</Text>
-
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Cari produk atau kategori..."
-            placeholderTextColor="#89958E"
-            value={search}
-            onChangeText={setSearch}
-          />
-
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Text style={styles.clearSearch}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* BANNER TANPA GAMBAR TAMBAHAN */}
-        <View style={styles.banner}>
-          <View style={styles.bannerText}>
-            <Text style={styles.bannerEyebrow}>SELAMAT DATANG DI</Text>
-
-            <Text style={styles.bannerTitle}>VapeStore</Text>
-
-            <Text style={styles.bannerDescription}>
-              Temukan produk dan aksesori pilihan.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.bannerButton}
-              onPress={() => {
-                setSelectedCategory("Semua");
-                setSearch("");
-              }}
-            >
-              <Text style={styles.bannerButtonText}>Jelajahi Katalog →</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.bannerDecoration}>
-            <Text style={styles.bannerLetter}>V</Text>
-          </View>
-        </View>
-
-        {/* KATEGORI */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Kategori Produk</Text>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-        >
-          <TouchableOpacity
-            style={[
-              styles.categoryItem,
-              selectedCategory === "Semua" && styles.categorySelected,
-            ]}
-            onPress={() => setSelectedCategory("Semua")}
-          >
-            <View style={styles.categoryIcon}>
-              <Text style={styles.allCategoryIcon}>▦</Text>
-            </View>
-
-            <Text style={styles.categoryName}>Semua</Text>
-          </TouchableOpacity>
-
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category.name}
-              style={[
-                styles.categoryItem,
-                selectedCategory === category.name && styles.categorySelected,
-              ]}
-              onPress={() => setSelectedCategory(category.name)}
-            >
-              <View style={styles.categoryIcon}>
-                <Image
-                  source={category.image}
-                  style={styles.categoryImage}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <Text style={styles.categoryName}>{category.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* PRODUK PILIHAN */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Produk Pilihan</Text>
-
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedCategory("Semua");
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={
+          <EmptyState
+            icon="search"
+            title="Produk tidak ditemukan"
+            message="Coba kata kunci atau kategori lain."
+            actionLabel="Reset pencarian"
+            onAction={() => {
               setSearch("");
+              setCategory("Semua");
             }}
-          >
-            <Text style={styles.seeAll}>Lihat Semua →</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.productGrid}>
-          {filteredProducts.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <View
-                style={[
-                  styles.productImage,
-                  { backgroundColor: product.color },
-                ]}
-              >
-                <Image
-                  source={product.image}
-                  style={styles.productPhoto}
-                  resizeMode="contain"
-                />
-
-                <View style={styles.productTag}>
-                  <Text style={styles.productTagText}>Produk</Text>
-                </View>
-              </View>
-
-              <View style={styles.productInfo}>
-                <Text style={styles.productCategory}>{product.category}</Text>
-
-                <Text style={styles.productName} numberOfLines={2}>
-                  {product.name}
-                </Text>
-
-                <Text style={styles.productPrice}>
-                  {formatRupiah(product.price)}
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => setCartCount((count) => count + 1)}
-                >
-                  <Text style={styles.addButtonText}>
-                    + Tambah ke Keranjang
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {filteredProducts.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Produk tidak ditemukan</Text>
-
-            <Text style={styles.emptyDescription}>
-              Coba kata kunci atau kategori lain.
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => {
-                setSearch("");
-                setSelectedCategory("Semua");
-              }}
-            >
-              <Text style={styles.seeAll}>Reset Pencarian</Text>
-            </TouchableOpacity>
-          </View>
+          />
+        }
+        renderItem={({ item }) => (
+          <ProductCard product={item} style={styles.gridCard} onPress={() => openDetail(item)} onAdd={() => add(item.id)} />
         )}
+      />
 
-        {/* FOOTER */}
-        <View style={styles.footer}>
-          <Text style={styles.footerTitle}>VapeStore</Text>
-          <Text style={styles.footerText}>
-            Katalog produk dan aksesori dalam satu aplikasi.
-          </Text>
-        </View>
-      </ScrollView>
-
-      {/* NAVIGASI BAWAH */}
-      <View style={styles.bottomNav}>
-        {[
-          { name: "Beranda", icon: "⌂" },
-          { name: "Kategori", icon: "▦" },
-          { name: "Keranjang", icon: "🛒" },
-          { name: "Pesanan", icon: "▤" },
-          { name: "Profil", icon: "♙" },
-        ].map((tab) => (
-          <TouchableOpacity
-            key={tab.name}
-            style={styles.navItem}
-            onPress={() => {
-              setActiveTab(tab.name);
-
-              if (tab.name === "Kategori") {
-                setSelectedCategory("Semua");
-              }
-            }}
-          >
-            <Text
-              style={[
-                styles.navIcon,
-                activeTab === tab.name && styles.navActive,
-              ]}
-            >
-              {tab.icon}
-            </Text>
-
-            <Text
-              style={[
-                styles.navLabel,
-                activeTab === tab.name && styles.navActive,
-              ]}
-            >
-              {tab.name}
-            </Text>
-
-            {tab.name === "Keranjang" && cartCount > 0 && (
-              <View style={styles.navBadge}>
-                <Text style={styles.navBadgeText}>{cartCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </View>
+      <BottomNav tabs={tabsForRole("pelanggan")} active="beranda" />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+  safe: { flex: 1, backgroundColor: colors.bg },
   header: {
-    minHeight: 66,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E9EEE9",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
+  loginBtn: {
+    width: 38, height: 38, borderRadius: 10, backgroundColor: colors.primary,
+    alignItems: "center", justifyContent: "center",
   },
-  logo: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: GREEN,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoIcon: {
-    color: "#FFFFFF",
-    fontSize: 25,
-    fontWeight: "800",
-  },
-  brandText: {
-    color: DARK,
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  brandAccent: {
-    color: GREEN,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  manageHeaderButton: {
-    backgroundColor: GREEN,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 11,
-  },
-  manageHeaderButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    backgroundColor: BG,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerIcon: {
-    fontSize: 19,
-  },
-  cartBadge: {
-    position: "absolute",
-    top: -3,
-    right: -3,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "#E34C4C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cartBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  content: {
-    padding: 18,
-    paddingBottom: 25,
-  },
-  searchBox: {
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5EAE5",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 13,
-    marginBottom: 18,
-  },
-  searchIcon: {
-    fontSize: 25,
-    color: GREEN,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: DARK,
-  },
-  clearSearch: {
-    color: GREEN,
-    fontSize: 16,
-    paddingHorizontal: 5,
-  },
+  searchWrap: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
+  content: { padding: 14, paddingBottom: 24 },
+  row: { justifyContent: "space-between", marginBottom: 12 },
+  gridCard: { width: "48.5%" },
   banner: {
-    minHeight: 175,
-    borderRadius: 20,
-    backgroundColor: "#073F2E",
-    overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-    marginBottom: 25,
+    borderRadius: 18, backgroundColor: "#073F2E", flexDirection: "row",
+    alignItems: "center", padding: 20, marginBottom: 16, minHeight: 150,
   },
-  bannerText: {
-    flex: 1,
-    zIndex: 1,
+  bannerText: { flex: 1 },
+  bannerEye: { color: "#7DCCA4", fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 6 },
+  bannerTitle: { color: colors.white, fontSize: 26, fontWeight: "900", lineHeight: 30, marginBottom: 14 },
+  bannerBtn: {
+    alignSelf: "flex-start", backgroundColor: colors.primary,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
   },
-  bannerEyebrow: {
-    color: "#A9DCC2",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    marginBottom: 7,
+  bannerBtnText: { color: colors.white, fontSize: 12, fontWeight: "800" },
+  catFlat: { flexGrow: 0 },
+  catList: { gap: 10, paddingBottom: 16 },
+  catItem: { alignItems: "center", gap: 6, width: 64 },
+  catIcon: {
+    width: 52, height: 52, borderRadius: radius.lg, backgroundColor: colors.primarySoft,
+    alignItems: "center", justifyContent: "center", padding: 8,
   },
-  bannerTitle: {
-    color: "#FFFFFF",
-    fontSize: 30,
-    fontWeight: "800",
-    marginBottom: 5,
-  },
-  bannerDescription: {
-    color: "#D5E9DE",
-    fontSize: 12,
-    marginBottom: 14,
-  },
-  bannerButton: {
-    alignSelf: "flex-start",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 9,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-  },
-  bannerButtonText: {
-    color: GREEN,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  bannerDecoration: {
-    position: "absolute",
-    right: 12,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
-  },
-  bannerLetter: {
-    color: "rgba(255,255,255,0.10)",
-    fontSize: 150,
-    fontWeight: "900",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    color: DARK,
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  seeAll: {
-    color: GREEN,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  categoryList: {
-    gap: 12,
-    paddingBottom: 25,
-  },
-  categoryItem: {
-    width: 74,
-    alignItems: "center",
-    gap: 7,
-    paddingVertical: 8,
-    borderRadius: 13,
-  },
-  categorySelected: {
-    backgroundColor: LIGHT_GREEN,
-  },
-  categoryIcon: {
-    width: 51,
-    height: 51,
-    borderRadius: 17,
-    backgroundColor: LIGHT_GREEN,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 7,
-  },
-  categoryImage: {
-    width: "100%",
-    height: "100%",
-  },
-  allCategoryIcon: {
-    color: GREEN,
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  categoryName: {
-    color: DARK,
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  productGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  productCard: {
-    width: "48%" as any,
-    flexGrow: 1,
-    flexBasis: 140,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E8EDE8",
-    overflow: "hidden",
-    marginBottom: 2,
-  },
-  productImage: {
-    height: 140,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
-  },
-  productPhoto: {
-    width: "100%",
-    height: "100%",
-  },
-  productTag: {
-    position: "absolute",
-    top: 9,
-    left: 9,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-  },
-  productTagText: {
-    color: GREEN,
-    fontSize: 9,
-    fontWeight: "700",
-  },
-  productInfo: {
-    padding: 11,
-  },
-  productCategory: {
-    color: "#7D8C82",
-    fontSize: 10,
-    marginBottom: 5,
-  },
-  productName: {
-    color: DARK,
-    fontSize: 12,
-    fontWeight: "700",
-    minHeight: 32,
-    marginBottom: 6,
-  },
-  productPrice: {
-    color: GREEN,
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 10,
-  },
-  addButton: {
-    backgroundColor: GREEN,
-    borderRadius: 9,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  addButtonText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  emptyState: {
-    alignItems: "center",
-    padding: 30,
-    gap: 10,
-  },
-  emptyTitle: {
-    color: DARK,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  emptyDescription: {
-    color: "#748078",
-    fontSize: 12,
-  },
-  footer: {
-    marginTop: 25,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5EAE5",
-  },
-  footerTitle: {
-    color: GREEN,
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 5,
-  },
-  footerText: {
-    color: "#78847C",
-    fontSize: 12,
-  },
-  bottomNav: {
-    minHeight: 66,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5EAE5",
-    paddingHorizontal: 4,
-  },
-  navItem: {
-    minWidth: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-  },
-  navIcon: {
-    color: "#89958E",
-    fontSize: 21,
-  },
-  navLabel: {
-    color: "#89958E",
-    fontSize: 10,
-  },
-  navActive: {
-    color: GREEN,
-    fontWeight: "800",
-  },
-  navBadge: {
-    position: "absolute",
-    top: -5,
-    right: 3,
-    backgroundColor: "#E34C4C",
-    borderRadius: 8,
-    minWidth: 15,
-    height: 15,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "700",
-  },
+  catIconActive: { backgroundColor: colors.primary },
+  catImg: { width: "100%", height: "100%" },
+  catName: { fontSize: 11, color: colors.muted, fontWeight: "600" },
+  catNameActive: { color: colors.primary, fontWeight: "800" },
+  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: "800", color: colors.ink },
+  count: { fontSize: 12, color: colors.muted, fontWeight: "600" },
+  pickList: { gap: 10, paddingBottom: 8 },
+  pickCard: { width: 160 },
 });

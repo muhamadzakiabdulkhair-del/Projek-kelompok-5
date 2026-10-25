@@ -108,7 +108,7 @@ Wawancara dilakukan dengan tujuan:
 
    - Keranjang Checkout
 
-   ![alt text](keranjangggg.gif)
+   ![alt text](keranjanggg.gif)
 
 2. Khajizatu Sidqiyah:
    - katalog
