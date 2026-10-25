@@ -142,7 +142,7 @@ export default function Keranjang() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/dashboard"))} hitSlop={10}>
           <Ionicons name="arrow-back" size={24} color="#111" />
         </Pressable>
         <Text style={styles.headerTitle}>Keranjang</Text>

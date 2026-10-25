@@ -1,4 +1,3 @@
-
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Image,
@@ -14,15 +13,18 @@ import {
 const GREEN = "#087F50";
 const DARK = "#0F1F17";
 
-const productData: Record<string, {
-  name: string;
-  sub: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  image: any;
-  description: string;
-}> = {
+const productData: Record<
+  string,
+  {
+    name: string;
+    sub: string;
+    price: number;
+    rating: number;
+    reviews: number;
+    image: any;
+    description: string;
+  }
+> = {
   "1": {
     name: "Uwell Caliburn G2",
     sub: "Pod System · Hitam",
@@ -97,7 +99,9 @@ export default function DetailProduk() {
         <Text style={styles.error}>Produk tidak ditemukan.</Text>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.back()}
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace("/dashboard")
+          }
         >
           <Text style={styles.buttonText}>Kembali</Text>
         </TouchableOpacity>
@@ -105,8 +109,7 @@ export default function DetailProduk() {
     );
   }
 
-  const formatRupiah = (price: number) =>
-    "Rp " + price.toLocaleString("id-ID");
+  const formatRupiah = (price: number) => "Rp " + price.toLocaleString("id-ID");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,7 +117,9 @@ export default function DetailProduk() {
 
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace("/dashboard")
+          }
           style={styles.backButton}
         >
           <Text style={styles.backText}>‹ Kembali</Text>
@@ -138,30 +143,22 @@ export default function DetailProduk() {
 
           <View style={styles.ratingRow}>
             <Text style={styles.rating}>★ {product.rating}</Text>
-            <Text style={styles.reviews}>
-              ({product.reviews} ulasan)
-            </Text>
+            <Text style={styles.reviews}>({product.reviews} ulasan)</Text>
           </View>
 
-          <Text style={styles.price}>
-            {formatRupiah(product.price)}
-          </Text>
+          <Text style={styles.price}>{formatRupiah(product.price)}</Text>
 
           <View style={styles.divider} />
 
           <Text style={styles.sectionTitle}>Deskripsi Produk</Text>
-          <Text style={styles.description}>
-            {product.description}
-          </Text>
+          <Text style={styles.description}>{product.description}</Text>
         </View>
       </ScrollView>
 
       <View style={styles.bottom}>
         <View>
           <Text style={styles.bottomLabel}>Harga</Text>
-          <Text style={styles.bottomPrice}>
-            {formatRupiah(product.price)}
-          </Text>
+          <Text style={styles.bottomPrice}>{formatRupiah(product.price)}</Text>
         </View>
 
         <TouchableOpacity
@@ -249,3 +246,4 @@ const styles = StyleSheet.create({
   buttonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 12 },
   error: { color: DARK, textAlign: "center", margin: 24 },
 });
+
