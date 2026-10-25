@@ -1,4 +1,4 @@
-@'
+
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from "expo-router";
 import { useColorScheme } from "react-native";
 
@@ -21,4 +21,4 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
-'@ | Set-Content -Encoding utf8 .\Kelompok5\src\app\_layout.tsx
+'@ | Set-Content -Encoding utf8 .\Kelompok5\src\app\_layout.tsx'
