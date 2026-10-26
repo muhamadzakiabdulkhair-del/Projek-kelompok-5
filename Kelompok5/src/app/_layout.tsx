@@ -2,12 +2,14 @@ import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from "expo-router";
 import { useColorScheme } from "react-native";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { CartProvider } from "@/context/cart";
+import { OrdersProvider } from "@/context/orders";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <OrdersProvider>
       <CartProvider>
         <AnimatedSplashOverlay />
         <Stack screenOptions={{ headerShown: false }}>
@@ -25,6 +27,7 @@ export default function RootLayout() {
           <Stack.Screen name="pelanggan/login" />
         </Stack>
       </CartProvider>
+      </OrdersProvider>
     </ThemeProvider>
   );
 }

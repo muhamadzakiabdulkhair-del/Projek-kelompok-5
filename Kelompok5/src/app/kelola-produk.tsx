@@ -172,7 +172,7 @@ export default function KelolaProdukScreen() {
           return (
             <Pressable
               style={styles.row}
-              onPress={() => router.push({ pathname: "/produk/[id]", params: { id: p.id } })}
+              onPress={() => openForm(p)}
             >
               <View style={styles.imgWrap}>
                 <Image source={p.image} style={styles.img} resizeMode="contain" />
