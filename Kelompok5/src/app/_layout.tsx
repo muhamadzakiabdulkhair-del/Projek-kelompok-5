@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from "expo-router";
 import { useColorScheme } from "react-native";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { AuthProvider } from "@/context/auth";
 import { CartProvider } from "@/context/cart";
 import { OrdersProvider } from "@/context/orders";
 
@@ -9,6 +10,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <AuthProvider>
       <OrdersProvider>
       <CartProvider>
         <AnimatedSplashOverlay />
@@ -28,6 +30,7 @@ export default function RootLayout() {
         </Stack>
       </CartProvider>
       </OrdersProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

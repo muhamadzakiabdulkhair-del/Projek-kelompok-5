@@ -1,35 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomNav } from "@/components/bottom-nav";
 import { BrandLogo } from "@/components/brand-logo";
 import { ScreenHeader } from "@/components/screen-header";
-import { parseRole, tabsForRole, type Role } from "@/constants/navigation";
+import { tabsForRole, type Role } from "@/constants/navigation";
 import { colors, font, radius, spacing } from "@/constants/palette";
-
-// Data profil dummy per role (UTS: tidak perlu backend)
-const PROFILES: Record<Role, { name: string; email: string; phone: string; role: string }> = {
-  pelanggan: {
-    name: "Budi Santoso",
-    email: "budi@email.com",
-    phone: "0812-3456-7890",
-    role: "Pelanggan",
-  },
-  owner: {
-    name: "Admin Owner",
-    email: "owner@vapestore.id",
-    phone: "0811-0000-0001",
-    role: "Owner",
-  },
-  karyawan: {
-    name: "Karyawan Toko",
-    email: "karyawan@vapestore.id",
-    phone: "0811-0000-0002",
-    role: "Karyawan",
-  },
-};
+import { useAuth } from "@/context/auth";
 
 type MenuItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -54,20 +33,35 @@ function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
   );
 }
 
+// Label role yang tampil di badge
+const ROLE_LABEL: Record<Role, string> = {
+  owner: "Owner",
+  karyawan: "Karyawan",
+  pelanggan: "Pelanggan",
+};
+
 export default function ProfilScreen() {
   const router = useRouter();
-  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
-  const role = parseRole(roleParam);
-  const profile = PROFILES[role];
+  const { user, logout } = useAuth();
 
-  const initials = profile.name
+  // Tentukan role dari data user yang login; fallback pelanggan jika belum login
+  const role: Role = user?.role ?? "pelanggan";
+
+  const name  = user?.name  ?? "Pengguna";
+  const email = user?.email ?? "-";
+  const phone = role === "owner"    ? "0811-0000-0001"
+              : role === "karyawan" ? "0811-0000-0002"
+              : "0812-3456-7890";
+
+  const initials = name
     .split(" ")
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
 
   const handleLogout = () => {
+    logout();
     if (role === "owner") router.replace("/admin/login");
     else if (role === "karyawan") router.replace("/karyawan/login");
     else router.replace("/pelanggan/login");
@@ -84,9 +78,9 @@ export default function ProfilScreen() {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          <Text style={styles.heroName}>{profile.name}</Text>
+          <Text style={styles.heroName}>{name}</Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{profile.role}</Text>
+            <Text style={styles.roleText}>{ROLE_LABEL[role]}</Text>
           </View>
         </View>
 
@@ -95,9 +89,9 @@ export default function ProfilScreen() {
           <Text style={styles.sectionTitle}>Informasi Akun</Text>
 
           {[
-            { icon: "person-outline" as const, label: "Nama", value: profile.name },
-            { icon: "mail-outline" as const, label: "Email", value: profile.email },
-            { icon: "call-outline" as const, label: "Telepon", value: profile.phone },
+            { icon: "person-outline" as const, label: "Nama", value: name },
+            { icon: "mail-outline" as const, label: "Email", value: email },
+            { icon: "call-outline" as const, label: "Telepon", value: phone },
           ].map((item) => (
             <View key={item.label} style={styles.infoRow}>
               <View style={styles.infoIcon}>

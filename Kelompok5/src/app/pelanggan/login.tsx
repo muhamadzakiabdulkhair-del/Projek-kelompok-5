@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/app-button";
@@ -6,12 +7,15 @@ import { AppInput } from "@/components/app-input";
 import { AuthLayout } from "@/components/auth-layout";
 import { EMAIL_REGEX, LoginForm } from "@/components/login-form";
 import { colors, radius } from "@/constants/palette";
-import { mockRegister } from "@/mock/auth";
+import { useAuth } from "@/context/auth";
+import { mockRegister, mockLogin } from "@/mock/auth";
 
 type Tab = "login" | "register";
 type RegErrors = { name?: string; email?: string; password?: string; confirm?: string };
 
 export default function PelangganLoginScreen() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [tab, setTab] = useState<Tab>("login");
   const [justRegistered, setJustRegistered] = useState("");
 
@@ -41,10 +45,21 @@ export default function PelangganLoginScreen() {
       role: "pelanggan",
     });
     if (result.ok) {
-      setJustRegistered(email.trim().toLowerCase());
-      setPassword("");
-      setConfirm("");
-      setTab("login");
+      // Langsung login setelah daftar
+      const loginResult = mockLogin({
+        email: email.trim().toLowerCase(),
+        password,
+        role: "pelanggan",
+      });
+      if (loginResult.ok && loginResult.user) {
+        login(loginResult.user);
+        router.replace("/dashboard");
+      } else {
+        setJustRegistered(email.trim().toLowerCase());
+        setPassword("");
+        setConfirm("");
+        setTab("login");
+      }
     } else {
       setFormError(result.message);
     }
