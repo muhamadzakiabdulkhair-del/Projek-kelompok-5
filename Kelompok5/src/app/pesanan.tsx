@@ -11,7 +11,8 @@ import { FilterChips } from "@/components/filter-chips";
 import { ScreenHeader } from "@/components/screen-header";
 import { parseRole, tabsForRole } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
-import { ORDERS, ORDER_STATUSES, type Order, type OrderStatus } from "@/data/orders";
+import { useOrders } from "@/context/orders";
+import { ORDER_STATUSES, type Order, type OrderStatus } from "@/data/orders";
 import { formatRupiah } from "@/data/products";
 
 const STATUS_COLOR: Record<OrderStatus, { fg: string; bg: string }> = {
@@ -31,19 +32,13 @@ export default function PesananScreen() {
   const role = parseRole(roleParam);
   const isStaff = role !== "pelanggan";
 
-  const [orders, setOrders] = useState<Order[]>(ORDERS);
+  const { orders, advanceStatus } = useOrders();
   const [filter, setFilter] = useState("Semua");
 
   const visible = useMemo(
     () => orders.filter((o) => filter === "Semua" || o.status === filter),
     [orders, filter],
   );
-
-  function advance(id: string) {
-    setOrders((old) =>
-      old.map((o) => (o.id === id && NEXT_STATUS[o.status] ? { ...o, status: NEXT_STATUS[o.status]! } : o)),
-    );
-  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -64,7 +59,7 @@ export default function PesananScreen() {
         ListEmptyComponent={
           <EmptyState icon="receipt-outline" title="Belum ada pesanan" message="Pesanan dengan status ini akan tampil di sini." />
         }
-        renderItem={({ item }) => {
+        renderItem={({ item }: { item: Order }) => {
           const sc = STATUS_COLOR[item.status];
           const next = NEXT_STATUS[item.status];
           return (
@@ -93,7 +88,7 @@ export default function PesananScreen() {
                     variant="soft"
                     icon="arrow-forward"
                     label={next === "Diproses" ? "Proses" : "Selesaikan"}
-                    onPress={() => advance(item.id)}
+                    onPress={() => advanceStatus(item.id)}
                   />
                 ) : null}
               </View>

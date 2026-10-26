@@ -20,6 +20,8 @@ import { ScreenHeader } from "@/components/screen-header";
 import { tabsForRole } from "@/constants/navigation";
 import { colors, font, radius, spacing } from "@/constants/palette";
 import { useCart, type CartLine } from "@/context/cart";
+import { useOrders } from "@/context/orders";
+import { type Order } from "@/data/orders";
 import { formatRupiah } from "@/data/products";
 
 const ONGKOS_KIRIM = 15_000;
@@ -123,33 +125,59 @@ function PaymentRow({
 export default function KeranjangScreen() {
   const router = useRouter();
   const { lines, total, count, setQty, remove, clear } = useCart();
+  const { addOrder } = useOrders();
   const [payment, setPayment] = useState<PaymentMethod>("TRANSFER_BANK");
   const [loading, setLoading] = useState(false);
 
   const ongkir = lines.length > 0 ? ONGKOS_KIRIM : 0;
   const grandTotal = total + ongkir;
 
+  // Buat objek Order dari isi keranjang saat ini
+  function buildOrder(): Order {
+    const now = new Date();
+    const tgl = now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+    const invoiceId = "INV-" + Date.now().toString().slice(-4);
+    const itemsLabel = lines
+      .map((l) => `${l.product.name} ×${l.qty}`)
+      .join(", ");
+    const methodMap: Record<PaymentMethod, Order["method"]> = {
+      TRANSFER_BANK: "Transfer",
+      QRIS: "QRIS",
+      COD: "Tunai",
+    };
+    return {
+      id: invoiceId,
+      customer: "Saya",
+      date: tgl,
+      items: itemsLabel,
+      total: grandTotal,
+      method: methodMap[payment],
+      status: "Menunggu Bayar",
+    };
+  }
+
   const handleCheckout = () => {
     if (lines.length === 0) return;
 
     const payLabel = PAYMENT_OPTIONS.find((p) => p.key === payment)?.label ?? payment;
 
-    const msg = `Total: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}\n\nPesanan berhasil dibuat!`;
-
     if (Platform.OS === "web") {
-      window.alert(msg);
+      const order = buildOrder();
+      addOrder(order);
       clear();
+      window.alert(`Pesanan ${order.id} berhasil dibuat!\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`);
       router.replace("/pesanan");
       return;
     }
 
     setLoading(true);
-    // Simulasi proses checkout (UTS: tanpa backend)
     setTimeout(() => {
+      const order = buildOrder();
+      addOrder(order);
       setLoading(false);
       Alert.alert(
         "Pesanan Dibuat ✓",
-        `Total: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`,
+        `${order.id}\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`,
         [
           {
             text: "Lihat Pesanan",
