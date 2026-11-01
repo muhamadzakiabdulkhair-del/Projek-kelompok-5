@@ -8,6 +8,8 @@ export type Product = {
   sub: string;
   category: Category;
   price: number;
+  purchasePrice: number; // Harga modal produk
+  isActive: boolean; // Status produk aktif/nonaktif
   stock: number;
   rating: number;
   reviews: number;
@@ -29,42 +31,42 @@ export const CATEGORY_IMAGES: Record<Category, ImageSourcePropType> = {
 export const PRODUCTS: Product[] = [
   {
     id: "1", name: "Uwell Caliburn G2", sub: "Pod System · Hitam", category: "Pod",
-    price: 450000, stock: 15, rating: 4.9, reviews: 100, image: CATEGORY_IMAGES.Pod,
+    price: 450000, purchasePrice: 350000, isActive: true, stock: 15, rating: 4.9, reviews: 100, image: CATEGORY_IMAGES.Pod,
     description: "Pod system ringkas dengan baterai 750 mAh dan pengisian USB-C. Cocok untuk pemula yang ingin perangkat praktis dan irit.",
   },
   {
     id: "2", name: "Vaporesso XROS 3", sub: "Pod System", category: "Pod",
-    price: 550000, stock: 20, rating: 4.7, reviews: 99, image: CATEGORY_IMAGES.Pod,
+    price: 550000, purchasePrice: 420000, isActive: true, stock: 20, rating: 4.7, reviews: 99, image: CATEGORY_IMAGES.Pod,
     description: "Pod system dengan airflow adjustable dan kapasitas pod 2 ml. Rasa tajam dengan konsumsi liquid yang hemat.",
   },
   {
     id: "3", name: "Liquid Naked 100", sub: "Strawberry 60ml", category: "Liquid",
-    price: 150000, stock: 35, rating: 4.8, reviews: 55, image: CATEGORY_IMAGES.Liquid,
+    price: 150000, purchasePrice: 100000, isActive: true, stock: 35, rating: 4.8, reviews: 55, image: CATEGORY_IMAGES.Liquid,
     description: "Liquid freebase rasa stroberi segar, botol 60 ml. Tersedia kadar nikotin rendah hingga sedang.",
   },
   {
     id: "4", name: "Coil Geekvape", sub: "Pack 4", category: "Coil",
-    price: 120000, stock: 4, rating: 4.6, reviews: 40, image: CATEGORY_IMAGES.Coil,
+    price: 120000, purchasePrice: 80000, isActive: true, stock: 4, rating: 4.6, reviews: 40, image: CATEGORY_IMAGES.Coil,
     description: "Coil pengganti isi 4 pcs, kompatibel dengan seri Geekvape Aegis. Menjaga rasa tetap konsisten.",
   },
   {
     id: "5", name: "Voopoo Drag X", sub: "Mod", category: "Mod",
-    price: 1200000, stock: 10, rating: 4.9, reviews: 76, image: CATEGORY_IMAGES.Mod,
+    price: 1200000, purchasePrice: 950000, isActive: true, stock: 10, rating: 4.9, reviews: 76, image: CATEGORY_IMAGES.Mod,
     description: "Mod 80 W dengan chip GENE.TT, layar jelas, dan body kokoh. Pilihan favorit pengguna menengah.",
   },
   {
     id: "6", name: "Geekvape Aegis", sub: "Mod", category: "Mod",
-    price: 1350000, stock: 8, rating: 4.8, reviews: 61, image: CATEGORY_IMAGES.Mod,
+    price: 1350000, purchasePrice: 1050000, isActive: true, stock: 8, rating: 4.8, reviews: 61, image: CATEGORY_IMAGES.Mod,
     description: "Mod tahan air dan benturan (IP68) dengan dukungan dual baterai 18650. Cocok untuk penggunaan harian yang berat.",
   },
   {
     id: "7", name: "Kapas Cotton Bacon", sub: "Aksesori", category: "Aksesori",
-    price: 35000, stock: 0, rating: 4.5, reviews: 28, image: CATEGORY_IMAGES.Aksesori,
+    price: 35000, purchasePrice: 20000, isActive: true, stock: 0, rating: 4.5, reviews: 28, image: CATEGORY_IMAGES.Aksesori,
     description: "Kapas organik untuk rebuildable atomizer. Daya serap tinggi dan tidak meninggalkan rasa.",
   },
   {
     id: "8", name: "Cartridge Pod Pengganti", sub: "Isi 2 pcs", category: "Aksesori",
-    price: 60000, stock: 25, rating: 4.4, reviews: 33, image: CATEGORY_IMAGES.Aksesori,
+    price: 60000, purchasePrice: 35000, isActive: true, stock: 25, rating: 4.4, reviews: 33, image: CATEGORY_IMAGES.Aksesori,
     description: "Cartridge pod pengganti isi 2 pcs untuk seri Caliburn. Pasang tanpa alat.",
   },
 ];

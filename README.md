@@ -76,7 +76,7 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 
 **Screenshot:**
 
-![Kelola Produk](Kelompok5/screenshots/kelola_produk.png)
+![Kelola Produk](screenshots/kelola-produk.png)
 
 ## 3. Cara Menjalankan Proyek
 
