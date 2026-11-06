@@ -1,19 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
-  Modal,
-  Pressable,
   SectionList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
-  type LayoutRectangle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { DatePickerInput } from "@/components/date-picker-input";
 import { ScreenHeader } from "@/components/screen-header";
 import { tabsForRole } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
@@ -25,16 +22,12 @@ type SalesRow = { kind: "sales"; id: string; date: string; trx: number; omzet: n
 type StockRow = { kind: "stock"; id: string; name: string; stock: number };
 type ReportRow = SalesRow | StockRow;
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const GREEN = colors.primary;
 
 const NAMA_BULAN = [
   "Januari","Februari","Maret","April","Mei","Juni",
   "Juli","Agustus","September","Oktober","November","Desember",
 ];
-const NAMA_BULAN_PENDEK = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-const NAMA_HARI = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
 
 // ─── Dummy data ───────────────────────────────────────────────────────────────
 
@@ -54,13 +47,13 @@ const STOCKS: StockRow[] = PRODUCTS.map((p) => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month, 0).getDate();
+function formatTanggal(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return `${day} ${NAMA_BULAN[month - 1]} ${year}`;
 }
-function firstDayOfMonth(year: number, month: number) {
-  return new Date(year, month - 1, 1).getDay();
-}
-function salesDatesSet(year: number, month: number): Set<number> {
+
+/** Kumpulkan tanggal yang ada data penjualan di bulan/tahun tertentu */
+function markedInMonth(year: number, month: number): Set<number> {
   const s = new Set<number>();
   SALES.forEach((r) => {
     const [y, m, d] = r.date.split("-").map(Number);
@@ -68,295 +61,18 @@ function salesDatesSet(year: number, month: number): Set<number> {
   });
   return s;
 }
-function formatLabel(date: string | null): string {
-  if (!date) return "Semua tanggal";
-  const [year, month, day] = date.split("-").map(Number);
-  return `${day} ${NAMA_BULAN_PENDEK[month - 1]} ${year}`;
-}
-function formatTanggal(date: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  return `${day} ${NAMA_BULAN[month - 1]} ${year}`;
-}
 
-// ─── DatePickerField ──────────────────────────────────────────────────────────
-// Input field + popover kalender kecil yang muncul tepat di bawahnya
-
-type DatePickerFieldProps = {
-  value: string | null;          // "YYYY-MM-DD" | null
-  onChange: (v: string | null) => void;
-};
-
-function DatePickerField({ value, onChange }: DatePickerFieldProps) {
-  const today     = new Date();
-  const initYear  = value ? Number(value.split("-")[0]) : today.getFullYear();
-  const initMonth = value ? Number(value.split("-")[1]) : today.getMonth() + 1;
-
-  const [open,       setOpen]       = useState(false);
-  const [viewYear,   setViewYear]   = useState(initYear);
-  const [viewMonth,  setViewMonth]  = useState(initMonth);
-  // anchor: posisi absolut dari field (untuk posisi popover)
-  const [anchor, setAnchor] = useState<LayoutRectangle | null>(null);
-  const fieldRef = useRef<View>(null);
-
-  const totalDays = daysInMonth(viewYear, viewMonth);
-  const startDay  = firstDayOfMonth(viewYear, viewMonth);
-  const hasSales  = salesDatesSet(viewYear, viewMonth);
-
-  const selectedDay = value
-    ? (() => {
-        const [y, m, d] = value.split("-").map(Number);
-        return y === viewYear && m === viewMonth ? d : null;
-      })()
-    : null;
-
-  function handleOpen() {
-    fieldRef.current?.measureInWindow((x, y, width, height) => {
-      setAnchor({ x, y, width, height });
-      setOpen(true);
-    });
-  }
-
-  function prevMonth() {
-    if (viewMonth === 1) { setViewYear(y => y - 1); setViewMonth(12); }
-    else setViewMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 12) { setViewYear(y => y + 1); setViewMonth(1); }
-    else setViewMonth(m => m + 1);
-  }
-
-  function handleDay(day: number) {
-    const dateStr = `${viewYear}-${String(viewMonth).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    if (value === dateStr) {
-      onChange(null); // deselect = reset
-    } else {
-      onChange(dateStr);
-    }
-    setOpen(false);
-  }
-
-  // Build grid
-  const cells: (number | null)[] = [
-    ...Array(startDay).fill(null),
-    ...Array.from({ length: totalDays }, (_, i) => i + 1),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const isThisMonth = today.getFullYear() === viewYear && today.getMonth() + 1 === viewMonth;
-
-  // Popover top = anchor.y + anchor.height + 4 (tepat di bawah field)
-  const popoverTop = anchor ? anchor.y + anchor.height + 4 : 0;
-  const popoverLeft = anchor ? anchor.x : 0;
-  const popoverWidth = anchor ? anchor.width : 280;
-
-  return (
-    <>
-      {/* ── Input field ── */}
-      <View ref={fieldRef} collapsable={false}>
-        <TouchableOpacity
-          style={[pf.field, open && pf.fieldOpen]}
-          onPress={handleOpen}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="calendar-outline" size={16} color={open ? GREEN : colors.muted} />
-          <Text style={[pf.fieldText, !value && pf.fieldPlaceholder]}>
-            {formatLabel(value)}
-          </Text>
-          {value
-            ? <TouchableOpacity
-                onPress={(e) => { e.stopPropagation(); onChange(null); }}
-                hitSlop={10}
-              >
-                <Ionicons name="close-circle" size={16} color={colors.muted} />
-              </TouchableOpacity>
-            : <Ionicons name="chevron-down" size={14} color={colors.muted} />
-          }
-        </TouchableOpacity>
-      </View>
-
-      {/* ── Popover kalender ── */}
-      <Modal
-        visible={open}
-        transparent
-        animationType="none"
-        onRequestClose={() => setOpen(false)}
-      >
-        {/* Backdrop tipis — tap di luar untuk tutup */}
-        <Pressable style={pf.backdrop} onPress={() => setOpen(false)} />
-
-        {/* Popover card, posisi tepat di bawah field */}
-        <View style={[pf.popover, { top: popoverTop, left: popoverLeft, width: popoverWidth }]}>
-
-          {/* Nav bulan */}
-          <View style={pf.calNav}>
-            <TouchableOpacity onPress={prevMonth} style={pf.navBtn} hitSlop={8}>
-              <Ionicons name="chevron-back" size={16} color={GREEN} />
-            </TouchableOpacity>
-            <Text style={pf.calNavTitle}>
-              {NAMA_BULAN[viewMonth - 1]} {viewYear}
-            </Text>
-            <TouchableOpacity onPress={nextMonth} style={pf.navBtn} hitSlop={8}>
-              <Ionicons name="chevron-forward" size={16} color={GREEN} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Header hari */}
-          <View style={pf.calRow}>
-            {NAMA_HARI.map((h) => (
-              <View key={h} style={pf.calCell}>
-                <Text style={pf.calDayLabel}>{h}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Grid tanggal */}
-          {Array.from({ length: cells.length / 7 }, (_, week) => (
-            <View key={week} style={pf.calRow}>
-              {cells.slice(week * 7, week * 7 + 7).map((day, idx) => {
-                if (day === null) return <View key={`e-${idx}`} style={pf.calCell} />;
-                const isSel   = day === selectedDay;
-                const isToday = isThisMonth && day === today.getDate();
-                const hasDot  = hasSales.has(day);
-                return (
-                  <TouchableOpacity
-                    key={day}
-                    style={[
-                      pf.calCell,
-                      isToday && !isSel && pf.todayCell,
-                      isSel && pf.selectedCell,
-                    ]}
-                    onPress={() => handleDay(day)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[pf.calDayText, isToday && !isSel && pf.todayText, isSel && pf.selectedText]}>
-                      {day}
-                    </Text>
-                    {hasDot && <View style={[pf.dot, isSel && pf.dotSel]} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
-
-          {/* Footer hint */}
-          <View style={pf.calFooter}>
-            <View style={[pf.dot, { position: "relative", marginTop: 0 }]} />
-            <Text style={pf.calFooterText}>Ada data · Tap tanggal yang sama untuk reset</Text>
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
-}
-
-// Styles untuk DatePickerField
-const pf = StyleSheet.create({
-  // Field
-  field: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.borderInput,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-  },
-  fieldOpen: {
-    borderColor: GREEN,
-    borderWidth: 1.5,
-  },
-  fieldText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.ink,
-  },
-  fieldPlaceholder: {
-    color: colors.placeholder,
-    fontWeight: "400",
-  },
-
-  // Backdrop
-  backdrop: {
-    position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
-  },
-
-  // Popover card
-  popover: {
-    position: "absolute",
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 12,
-    // Shadow iOS
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    // Shadow Android
-    elevation: 8,
-    zIndex: 999,
-  },
-
-  // Calendar nav
-  calNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  navBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  calNavTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: colors.ink,
-  },
-
-  // Grid
-  calRow:     { flexDirection: "row" },
-  calCell:    { flex: 1, alignItems: "center", paddingVertical: 5, borderRadius: 6, marginVertical: 1, marginHorizontal: 1 },
-  calDayLabel:{ fontSize: 9,  fontWeight: "700", color: colors.muted },
-  calDayText: { fontSize: 12, fontWeight: "500", color: colors.ink },
-  todayCell:  { borderWidth: 1.5, borderColor: GREEN },
-  todayText:  { color: GREEN, fontWeight: "800" },
-  selectedCell: { backgroundColor: GREEN },
-  selectedText: { color: colors.white, fontWeight: "900" },
-  dot: {
-    position: "absolute", bottom: 2,
-    width: 4, height: 4, borderRadius: 2,
-    backgroundColor: GREEN,
-  },
-  dotSel: { backgroundColor: colors.white },
-
-  // Footer
-  calFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 8,
-    paddingTop: 7,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  calFooterText: { fontSize: 9, color: colors.muted },
-});
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function LaporanScreen() {
-  // selected = "YYYY-MM-DD" | null (semua data)
   const [selected, setSelected] = useState<string | null>(null);
+
+  // Ikuti navigasi bulan di kalender supaya dot selalu update
+  const today = new Date();
+  const [viewYear,  setViewYear]  = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth() + 1);
+
+  const marked = markedInMonth(viewYear, viewMonth);
 
   const filteredSales = selected
     ? SALES.filter((r) => r.date === selected)
@@ -391,10 +107,17 @@ export default function LaporanScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View>
-            {/* ── FILTER ── */}
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>Tanggal</Text>
-              <DatePickerField value={selected} onChange={setSelected} />
+            {/* ── FILTER TANGGAL ── */}
+            <View style={styles.filterCard}>
+              <Text style={styles.filterTitle}>Filter Laporan Penjualan</Text>
+              <DatePickerInput
+                label="Tanggal"
+                placeholder="Semua tanggal"
+                value={selected}
+                onChange={setSelected}
+                markedDates={marked}
+                onViewChange={(y, m) => { setViewYear(y); setViewMonth(m); }}
+              />
             </View>
 
             {/* ── RINGKASAN ── */}
@@ -465,14 +188,19 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 14, paddingBottom: 24 },
 
-  filterRow: {
+  filterCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
     marginBottom: 12,
-    gap: 6,
+    gap: 10,
   },
-  filterLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.muted,
+  filterTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.ink,
   },
 
   summaryRow: { marginBottom: 6 },

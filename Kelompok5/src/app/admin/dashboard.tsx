@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BottomNav } from "@/components/bottom-nav";
 import { BrandLogo } from "@/components/brand-logo";
+import { DatePickerInput } from "@/components/date-picker-input";
 import { tabsForRole } from "@/constants/navigation";
 import { colors, font, radius, spacing } from "@/constants/palette";
 
@@ -269,19 +270,19 @@ export default function AdminDashboard() {
   const router = useRouter();
   const today  = new Date();
 
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
-  const [selectedYear,  setSelectedYear]  = useState(today.getFullYear());
-  const [activePeriod,  setActivePeriod]  = useState(
-    getPeriodKey(today.getMonth() + 1, today.getFullYear())
-  );
+  // Periode aktif: "YYYY-MM-DD" format tapi kita cuma pakai year+month
+  // Simpan sebagai "YYYY-MM-01" supaya bisa pakai DatePickerInput
+  const initDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,"0")}-01`;
+  const [pickedDate, setPickedDate] = useState<string | null>(initDate);
+
+  // Derive period key dari pickedDate
+  const activePeriod = pickedDate
+    ? getPeriodKey(Number(pickedDate.split("-")[1]), Number(pickedDate.split("-")[0]))
+    : getPeriodKey(today.getMonth() + 1, today.getFullYear());
 
   const data    = statsData[activePeriod] ?? emptyData;
   const hasData = Boolean(statsData[activePeriod]);
   const days    = getJumlahHari(activePeriod);
-
-  function applyFilter() {
-    setActivePeriod(getPeriodKey(selectedMonth, selectedYear));
-  }
 
   type StatCard = {
     label: string; value: string;
@@ -317,27 +318,16 @@ export default function AdminDashboard() {
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
-        {/* ── FILTER PERIODE — compact 1 baris ── */}
+        {/* ── FILTER PERIODE ── */}
         <View style={s.filterBar}>
-          <Ionicons name="calendar-outline" size={16} color={GREEN} style={{ marginTop: 18 }} />
-
-          <Dropdown
-            label="Bulan"
-            value={NAMA_BULAN[selectedMonth - 1]}
-            options={NAMA_BULAN.map((b, i) => ({ label: b, value: i + 1 }))}
-            onSelect={setSelectedMonth}
-          />
-
-          <Dropdown
-            label="Tahun"
-            value={String(selectedYear)}
-            options={YEAR_OPTIONS.map((y) => ({ label: String(y), value: y }))}
-            onSelect={setSelectedYear}
-          />
-
-          <TouchableOpacity style={s.applyBtn} onPress={applyFilter}>
-            <Text style={s.applyBtnText}>Tampilkan</Text>
-          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <DatePickerInput
+              label="Periode"
+              placeholder="Pilih bulan"
+              value={pickedDate}
+              onChange={(v) => setPickedDate(v ?? initDate)}
+            />
+          </View>
         </View>
 
         {/* Badge periode aktif */}
