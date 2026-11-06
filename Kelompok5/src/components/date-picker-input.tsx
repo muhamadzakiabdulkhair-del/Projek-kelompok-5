@@ -124,10 +124,11 @@ export function DatePickerInput({
 
   const isThisMonth = today.getFullYear() === viewYear && today.getMonth() + 1 === viewMonth;
 
-  // Popover position — tepat di bawah field
+  // Popover position — tepat di bawah field, lebar fixed kecil
+  const POP_W   = 260;
   const popTop  = anchor ? anchor.y + anchor.height + 4 : 0;
   const popLeft = anchor ? anchor.x : 0;
-  const popW    = Math.max(anchor?.width ?? 0, 240);
+  const popW    = POP_W;
 
   return (
     <>
