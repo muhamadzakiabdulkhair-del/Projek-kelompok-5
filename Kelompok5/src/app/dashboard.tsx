@@ -1,41 +1,82 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState } from "react";
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BottomNav } from "@/components/bottom-nav";
-import { BrandLogo } from "@/components/brand-logo";
-import { EmptyState } from "@/components/empty-state";
+
+import { BottomNav }   from "@/components/bottom-nav";
+import { BrandLogo }   from "@/components/brand-logo";
+import { EmptyState }  from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
-import { SearchBar } from "@/components/search-bar";
+import { SearchBar }   from "@/components/search-bar";
 import { tabsForRole } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
-import { useCart } from "@/context/cart";
-import { CATEGORIES, CATEGORY_IMAGES, PRODUCTS, type Product } from "@/data/products";
-
-const TOP_RATED = [...PRODUCTS].sort((a, b) => b.rating - a.rating).slice(0, 4);
+import { useCart }     from "@/context/cart";
+import { CATEGORIES, CATEGORY_IMAGES, type Product } from "@/data/products";
+import { fetchProducts } from "@/services/productService";
 
 export default function DashboardScreen() {
-  const router = useRouter();
-  const { add } = useCart();
-  const [search, setSearch] = useState("");
+  const router    = useRouter();
+  const { add }   = useCart();
+
+  // ── Data dari Supabase ────────────────────────────────────────────────────
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading,  setLoading]  = useState(true);
+
+  const loadProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Hanya produk aktif yang ditampilkan ke pelanggan
+      const all = await fetchProducts();
+      setProducts(all.filter((p) => p.isActive !== false));
+    } catch {
+      // Gagal fetch — tampilkan list kosong, jangan crash
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadProducts(); }, [loadProducts]);
+
+  // ── Filter lokal (search + kategori) ─────────────────────────────────────
+  const [search,   setSearch]   = useState("");
   const [category, setCategory] = useState<string>("Semua");
 
   const filtered = useMemo(
     () =>
-      PRODUCTS.filter((p) => {
+      products.filter((p) => {
         const q = search.trim().toLowerCase();
-        const matchSearch = !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+        const matchSearch =
+          !q ||
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q);
         return matchSearch && (category === "Semua" || p.category === category);
       }),
-    [search, category],
+    [products, search, category],
   );
 
-  const openDetail = (p: Product) => router.push({ pathname: "/produk/[id]", params: { id: p.id } });
+  const topRated = useMemo(
+    () => [...products].sort((a, b) => b.rating - a.rating).slice(0, 4),
+    [products],
+  );
 
+  const openDetail = (p: Product) =>
+    router.push({ pathname: "/produk/[id]", params: { id: p.id } });
+
+  // ── List header ───────────────────────────────────────────────────────────
   const listHeader = (
     <View>
+      {/* Banner */}
       <View style={styles.banner}>
         <View style={styles.bannerText}>
           <Text style={styles.bannerEye}>POD SYSTEM</Text>
@@ -47,6 +88,7 @@ export default function DashboardScreen() {
         <Ionicons name="cloud-outline" size={72} color="rgba(125,204,164,0.45)" />
       </View>
 
+      {/* Kategori */}
       <FlatList
         horizontal
         data={["Semua", ...CATEGORIES]}
@@ -62,7 +104,11 @@ export default function DashboardScreen() {
                 {item === "Semua" ? (
                   <Ionicons name="grid" size={22} color={active ? colors.white : colors.primary} />
                 ) : (
-                  <Image source={CATEGORY_IMAGES[item as keyof typeof CATEGORY_IMAGES]} style={styles.catImg} resizeMode="contain" />
+                  <Image
+                    source={CATEGORY_IMAGES[item as keyof typeof CATEGORY_IMAGES]}
+                    style={styles.catImg}
+                    resizeMode="contain"
+                  />
                 )}
               </View>
               <Text style={[styles.catName, active && styles.catNameActive]}>{item}</Text>
@@ -71,14 +117,25 @@ export default function DashboardScreen() {
         }}
       />
 
-      <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>{category === "Semua" ? "Semua Produk" : `Kategori ${category}`}</Text>
-        <Text style={styles.count}>{filtered.length} produk</Text>
-      </View>
+      {/* Label section */}
+      {loading ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.loadingText}>Memuat produk...</Text>
+        </View>
+      ) : (
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>
+            {category === "Semua" ? "Semua Produk" : `Kategori ${category}`}
+          </Text>
+          <Text style={styles.count}>{filtered.length} produk</Text>
+        </View>
+      )}
     </View>
   );
 
-  const showPicks = category === "Semua" && search.trim() === "";
+  // ── List footer (produk pilihan) ──────────────────────────────────────────
+  const showPicks = category === "Semua" && search.trim() === "" && topRated.length > 0;
   const listFooter = showPicks ? (
     <View>
       <View style={styles.sectionRow}>
@@ -87,12 +144,17 @@ export default function DashboardScreen() {
       </View>
       <FlatList
         horizontal
-        data={TOP_RATED}
+        data={topRated}
         keyExtractor={(p) => "pick-" + p.id}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.pickList}
         renderItem={({ item }) => (
-          <ProductCard product={item} style={styles.pickCard} onPress={() => openDetail(item)} onAdd={() => add(item.id)} />
+          <ProductCard
+            product={item}
+            style={styles.pickCard}
+            onPress={() => openDetail(item)}
+            onAdd={() => add(item.id)}
+          />
         )}
       />
     </View>
@@ -102,19 +164,28 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
 
+      {/* Header */}
       <View style={styles.header}>
         <BrandLogo />
-        <Pressable style={styles.loginBtn} onPress={() => router.push("/pelanggan/login")} accessibilityLabel="Masuk">
+        <Pressable
+          style={styles.loginBtn}
+          onPress={() => router.push("/pelanggan/login")}
+          accessibilityLabel="Masuk"
+        >
           <Ionicons name="person" size={18} color={colors.white} />
         </Pressable>
       </View>
 
       <View style={styles.searchWrap}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Cari produk, kategori, atau merek..." />
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Cari produk, kategori, atau merek..."
+        />
       </View>
 
       <FlatList
-        data={filtered}
+        data={loading ? [] : filtered}
         keyExtractor={(p) => p.id}
         numColumns={2}
         columnWrapperStyle={styles.row}
@@ -123,19 +194,23 @@ export default function DashboardScreen() {
         ListHeaderComponent={listHeader}
         ListFooterComponent={listFooter}
         ListEmptyComponent={
-          <EmptyState
-            icon="search"
-            title="Produk tidak ditemukan"
-            message="Coba kata kunci atau kategori lain."
-            actionLabel="Reset pencarian"
-            onAction={() => {
-              setSearch("");
-              setCategory("Semua");
-            }}
-          />
+          loading ? null : (
+            <EmptyState
+              icon="search"
+              title="Produk tidak ditemukan"
+              message="Coba kata kunci atau kategori lain."
+              actionLabel="Reset pencarian"
+              onAction={() => { setSearch(""); setCategory("Semua"); }}
+            />
+          )
         }
         renderItem={({ item }) => (
-          <ProductCard product={item} style={styles.gridCard} onPress={() => openDetail(item)} onAdd={() => add(item.id)} />
+          <ProductCard
+            product={item}
+            style={styles.gridCard}
+            onPress={() => openDetail(item)}
+            onAdd={() => add(item.id)}
+          />
         )}
       />
 
@@ -159,6 +234,10 @@ const styles = StyleSheet.create({
   content: { padding: 14, paddingBottom: 24 },
   row: { justifyContent: "space-between", marginBottom: 12 },
   gridCard: { width: "48.5%" },
+
+  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12, marginTop: 4 },
+  loadingText: { fontSize: 13, color: colors.muted },
+
   banner: {
     borderRadius: 18, backgroundColor: "#073F2E", flexDirection: "row",
     alignItems: "center", padding: 20, marginBottom: 16, minHeight: 150,
@@ -171,6 +250,7 @@ const styles = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
   },
   bannerBtnText: { color: colors.white, fontSize: 12, fontWeight: "800" },
+
   catFlat: { flexGrow: 0 },
   catList: { gap: 10, paddingBottom: 16 },
   catItem: { alignItems: "center", gap: 6, width: 64 },
@@ -182,9 +262,11 @@ const styles = StyleSheet.create({
   catImg: { width: "100%", height: "100%" },
   catName: { fontSize: 11, color: colors.muted, fontWeight: "600" },
   catNameActive: { color: colors.primary, fontWeight: "800" },
+
   sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   sectionTitle: { fontSize: 17, fontWeight: "800", color: colors.ink },
   count: { fontSize: 12, color: colors.muted, fontWeight: "600" },
+
   pickList: { gap: 10, paddingBottom: 8 },
   pickCard: { width: 160 },
 });

@@ -16,7 +16,11 @@ export function ProductCard({ product, onPress, onAdd, style }: Props) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed, style]}>
       <View style={styles.imgWrap}>
-        <Image source={product.image} style={styles.img} resizeMode="contain" />
+        {product.fotoUrl ? (
+          <Image source={{ uri: product.fotoUrl }} style={styles.imgCover} resizeMode="cover" />
+        ) : (
+          <Image source={product.image} style={styles.img} resizeMode="contain" />
+        )}
         {soldOut ? (
           <View style={styles.soldBadge}><Text style={styles.soldText}>Habis</Text></View>
         ) : null}
@@ -52,8 +56,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, overflow: "hidden",
   },
   pressed: { opacity: 0.9 },
-  imgWrap: { height: 130, backgroundColor: colors.tint, alignItems: "center", justifyContent: "center", padding: 12 },
-  img: { width: "100%", height: "100%" },
+  imgWrap: { height: 130, backgroundColor: colors.tint, alignItems: "center", justifyContent: "center", padding: 12, overflow: "hidden" },
+  img:     { width: "100%", height: "100%" },
+  imgCover:{ width: "100%", height: "100%", margin: -12 }, // full bleed untuk foto Storage
   soldBadge: {
     position: "absolute", top: 8, left: 8, backgroundColor: colors.danger,
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
