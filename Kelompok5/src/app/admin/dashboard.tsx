@@ -4,13 +4,13 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BottomNav } from "@/components/bottom-nav";
@@ -155,6 +155,193 @@ function getJumlahHari(period: string) {
   return new Date(year, month, 0).getDate();
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Rentang tahun: 2020 s/d tahun sekarang + 1 */
+function buildYearRange(): number[] {
+  const current = new Date().getFullYear();
+  const years: number[] = [];
+  for (let y = 2020; y <= current + 1; y++) years.push(y);
+  return years;
+}
+
+const YEAR_OPTIONS = buildYearRange();
+
+// ─── MonthCalendar ─────────────────────────────────────────────────────────────
+// Picker bulan + tahun bergaya kalender (tanpa pilih tanggal)
+
+type MonthCalendarProps = {
+  year: number;
+  month: number;
+  onChangeMonth: (year: number, month: number) => void;
+};
+
+function MonthCalendar({ year, month, onChangeMonth }: MonthCalendarProps) {
+  const [showYearPicker, setShowYearPicker] = useState(false);
+
+  function prevMonth() {
+    if (month === 1) onChangeMonth(year - 1, 12);
+    else onChangeMonth(year, month - 1);
+  }
+
+  function nextMonth() {
+    if (month === 12) onChangeMonth(year + 1, 1);
+    else onChangeMonth(year, month + 1);
+  }
+
+  return (
+    <View style={mc.wrapper}>
+      {/* Month navigation */}
+      <View style={mc.nav}>
+        <Pressable onPress={prevMonth} style={mc.navBtn} hitSlop={10}>
+          <Ionicons name="chevron-back" size={20} color={GREEN} />
+        </Pressable>
+
+        <Pressable
+          style={mc.navCenter}
+          onPress={() => setShowYearPicker((v) => !v)}
+          hitSlop={6}
+        >
+          <Text style={mc.navMonth}>{namaBulan[month - 1]}</Text>
+          <Text style={mc.navYear}>{year}</Text>
+          <Ionicons
+            name={showYearPicker ? "chevron-up" : "chevron-down"}
+            size={14}
+            color={colors.muted}
+          />
+        </Pressable>
+
+        <Pressable onPress={nextMonth} style={mc.navBtn} hitSlop={10}>
+          <Ionicons name="chevron-forward" size={20} color={GREEN} />
+        </Pressable>
+      </View>
+
+      {/* Inline year grid */}
+      {showYearPicker && (
+        <ScrollView
+          style={mc.yearScroll}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+        >
+          <View style={mc.yearGrid}>
+            {YEAR_OPTIONS.map((y) => {
+              const active = y === year;
+              return (
+                <Pressable
+                  key={y}
+                  style={[mc.yearCell, active && mc.yearCellActive]}
+                  onPress={() => {
+                    onChangeMonth(y, month);
+                    setShowYearPicker(false);
+                  }}
+                >
+                  <Text style={[mc.yearText, active && mc.yearTextActive]}>
+                    {y}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Month grid */}
+      {!showYearPicker && (
+        <View style={mc.monthGrid}>
+          {namaBulan.map((label, idx) => {
+            const m = idx + 1;
+            const active = m === month;
+            return (
+              <Pressable
+                key={label}
+                style={[mc.monthCell, active && mc.monthCellActive]}
+                onPress={() => onChangeMonth(year, m)}
+              >
+                <Text style={[mc.monthText, active && mc.monthTextActive]}>
+                  {label.slice(0, 3)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const mc = StyleSheet.create({
+  wrapper: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  nav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  navBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  navMonth: { fontSize: 15, fontWeight: "800", color: colors.ink },
+  navYear: { fontSize: 13, fontWeight: "600", color: GREEN },
+  yearScroll: { maxHeight: 160 },
+  yearGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingBottom: 8,
+  },
+  yearCell: {
+    width: "22%",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  yearCellActive: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+  },
+  yearText: { fontSize: 13, fontWeight: "600", color: colors.ink },
+  yearTextActive: { color: colors.white, fontWeight: "900" },
+  monthGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  monthCell: {
+    width: "22%",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  monthCellActive: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+  },
+  monthText: { fontSize: 12, fontWeight: "700", color: colors.ink },
+  monthTextActive: { color: colors.white },
+});
+
+// ─── BarChart ─────────────────────────────────────────────────────────────────
+
 function BarChart({
   data,
   days,
@@ -243,24 +430,21 @@ export default function AdminDashboard() {
 
   const today = new Date();
 
-  // Periode yang dipilih pada Picker
-  const [selectedMonth, setSelectedMonth] = useState(
-    today.getMonth() + 1
-  );
+  // Periode yang dipilih pada kalender
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
+  const [selectedYear,  setSelectedYear]  = useState(today.getFullYear());
 
-  const [selectedYear, setSelectedYear] = useState(
-    today.getFullYear()
-  );
+  // Apakah kalender terbuka
+  const [calOpen, setCalOpen] = useState(false);
 
-  // Periode yang sedang ditampilkan
+  // Periode yang sedang ditampilkan (diterapkan setelah tekan Tampilkan)
   const [activePeriod, setActivePeriod] = useState(
     getPeriodKey(today.getMonth() + 1, today.getFullYear())
   );
 
-  // Mengambil data sesuai periode
-  const data = statsData[activePeriod] ?? emptyData;
+  const data    = statsData[activePeriod] ?? emptyData;
   const hasData = Boolean(statsData[activePeriod]);
-  const days = getJumlahHari(activePeriod);
+  const days    = getJumlahHari(activePeriod);
 
   type StatCard = {
     label: string;
@@ -324,9 +508,8 @@ export default function AdminDashboard() {
 
   // Terapkan filter setelah tombol ditekan
   function applyFilter() {
-    setActivePeriod(
-      getPeriodKey(selectedMonth, selectedYear)
-    );
+    setActivePeriod(getPeriodKey(selectedMonth, selectedYear));
+    setCalOpen(false);
   }
 
   return (
@@ -358,91 +541,50 @@ export default function AdminDashboard() {
         {/* FILTER PERIODE */}
         <View style={s.filterCard}>
           <View style={s.filterTitleRow}>
-            <Ionicons
-              name="calendar-outline"
-              size={19}
-              color={GREEN}
-            />
-            <Text style={s.filterLabel}>
-              Filter Periode Dashboard
+            <Ionicons name="calendar-outline" size={19} color={GREEN} />
+            <Text style={s.filterLabel}>Filter Periode Dashboard</Text>
+          </View>
+
+          {/* Toggle button — tampilkan bulan+tahun aktif */}
+          <TouchableOpacity
+            style={s.calToggleBtn}
+            onPress={() => setCalOpen((v) => !v)}
+          >
+            <Ionicons name="calendar-outline" size={16} color={GREEN} />
+            <Text style={s.calToggleText}>
+              {namaBulan[selectedMonth - 1]} {selectedYear}
             </Text>
-          </View>
+            <Ionicons
+              name={calOpen ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={colors.muted}
+            />
+          </TouchableOpacity>
 
-          <View style={s.filterRow}>
-            {/* PILIH BULAN */}
-            <View style={s.filterColumn}>
-              <Text style={s.inputLabel}>Bulan</Text>
-
-              <View style={s.selectWrapper}>
-                <Picker
-                  selectedValue={selectedMonth}
-                  onValueChange={(value) =>
-                    setSelectedMonth(Number(value))
-                  }
-                  style={s.picker}
-                  mode="dropdown"
-                >
-                  {namaBulan.map((bulan, index) => (
-                    <Picker.Item
-                      key={bulan}
-                      label={bulan}
-                      value={index + 1}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            {/* PILIH TAHUN */}
-            <View style={s.filterColumn}>
-              <Text style={s.inputLabel}>Tahun</Text>
-
-              <View style={s.selectWrapper}>
-                <Picker
-                  selectedValue={selectedYear}
-                  onValueChange={(value) =>
-                    setSelectedYear(Number(value))
-                  }
-                  style={s.picker}
-                  mode="dropdown"
-                >
-                  {[2025, 2026, 2027, 2028].map((year) => (
-                    <Picker.Item
-                      key={year}
-                      label={String(year)}
-                      value={year}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-          </View>
+          {/* Inline MonthCalendar */}
+          {calOpen && (
+            <MonthCalendar
+              year={selectedYear}
+              month={selectedMonth}
+              onChangeMonth={(y, m) => {
+                setSelectedYear(y);
+                setSelectedMonth(m);
+              }}
+            />
+          )}
 
           <View style={s.filterControls}>
-            <TouchableOpacity
-              style={s.filterBtn}
-              onPress={applyFilter}
-            >
-              <Ionicons
-                name="filter-outline"
-                size={16}
-                color={colors.white}
-              />
+            <TouchableOpacity style={s.filterBtn} onPress={applyFilter}>
+              <Ionicons name="filter-outline" size={16} color={colors.white} />
               <Text style={s.filterBtnText}>Tampilkan</Text>
             </TouchableOpacity>
           </View>
 
           <View style={s.filterInfoRow}>
-            <Ionicons
-              name="information-circle-outline"
-              size={15}
-              color={colors.muted}
-            />
+            <Ionicons name="information-circle-outline" size={15} color={colors.muted} />
             <Text style={s.filterInfo}>
               Data periode{" "}
-              <Text style={s.filterInfoBold}>
-                {getBulanLabel(activePeriod)}
-              </Text>
+              <Text style={s.filterInfoBold}>{getBulanLabel(activePeriod)}</Text>
             </Text>
           </View>
         </View>
@@ -672,7 +814,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 12,
   },
 
   filterLabel: {
@@ -681,13 +823,24 @@ const s = StyleSheet.create({
     fontWeight: "800",
   },
 
-  filterRow: {
+  calToggleBtn: {
     flexDirection: "row",
-    gap: 10,
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.borderInput,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.bg,
+    marginBottom: 12,
   },
 
-  filterColumn: {
+  calToggleText: {
     flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.ink,
   },
 
   inputLabel: {
@@ -695,22 +848,6 @@ const s = StyleSheet.create({
     fontWeight: "700",
     color: colors.muted,
     marginBottom: 6,
-  },
-
-  selectWrapper: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: colors.borderInput,
-    borderRadius: radius.sm,
-    justifyContent: "center",
-    overflow: "hidden",
-    backgroundColor: colors.bg,
-  },
-
-  picker: {
-    width: "100%",
-    height: 48,
-    color: DARK,
   },
 
   filterControls: {
