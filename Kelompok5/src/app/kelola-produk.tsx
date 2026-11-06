@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,8 +43,10 @@ import {
   activateProduct,
   createProduct,
   deactivateProduct,
+  deleteFoto,
   fetchProducts,
   updateProduct,
+  uploadFoto,
 } from "@/services/productService";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -93,12 +97,14 @@ export default function KelolaProdukScreen() {
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingFotoUrl, setEditingFotoUrl] = useState<string | null>(null); // URL foto lama saat edit
   const [name, setName] = useState("");
   const [sub, setSub] = useState("");
   const [category, setCategory] = useState<Category>("Pod");
   const [price, setPrice] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [stock, setStock] = useState("");
+  const [fotoUri, setFotoUri] = useState<string | null>(null);   // URI lokal foto baru
   const [errors, setErrors] = useState<FormErrors>({});
 
   // ── Load data dari Supabase ────────────────────────────────────────────────
@@ -134,12 +140,14 @@ export default function KelolaProdukScreen() {
   function openForm(p?: Product) {
     if (!isAdmin) return;
     setEditingId(p?.id ?? null);
+    setEditingFotoUrl(p?.fotoUrl ?? null);
     setName(p?.name ?? "");
     setSub(p?.sub ?? "");
     setCategory(p?.category ?? "Pod");
     setPrice(p ? String(p.price) : "");
     setPurchasePrice(p ? String(p.purchasePrice ?? "") : "");
     setStock(p ? String(p.stock) : "");
+    setFotoUri(null);
     setErrors({});
     setFormVisible(true);
   }
@@ -159,6 +167,24 @@ export default function KelolaProdukScreen() {
     return e;
   }
 
+  // ── Image picker ──────────────────────────────────────────────────────────
+  async function pilihFoto() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Izin diperlukan", "Izinkan akses galeri untuk memilih foto.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (!result.canceled) {
+      setFotoUri(result.assets[0].uri);
+    }
+  }
+
   // ── Save (CREATE / UPDATE) ─────────────────────────────────────────────────
   async function save() {
     if (!isAdmin) return;
@@ -168,6 +194,17 @@ export default function KelolaProdukScreen() {
 
     try {
       setSaving(true);
+
+      // Upload foto baru jika ada
+      let fotoUrl: string | null | undefined = undefined;
+      if (fotoUri) {
+        fotoUrl = await uploadFoto(fotoUri);
+        // Hapus foto lama dari Storage jika ini adalah edit dan ada foto lama
+        if (editingId && editingFotoUrl) {
+          await deleteFoto(editingFotoUrl);
+        }
+      }
+
       const input = {
         nama: name.trim(),
         harga: Number(price),
@@ -175,6 +212,7 @@ export default function KelolaProdukScreen() {
         deskripsi: sub.trim() || category,
         kategori: category,
         stok: Number(stock),
+        ...(fotoUrl !== undefined && { foto_url: fotoUrl }),
       };
 
       if (editingId) {
@@ -298,7 +336,11 @@ export default function KelolaProdukScreen() {
           return (
             <View style={[styles.row, !p.isActive && styles.inactiveRow]}>
               <View style={styles.imgWrap}>
-                <Image source={p.image} style={styles.img} resizeMode="contain" />
+                {p.fotoUrl ? (
+                  <Image source={{ uri: p.fotoUrl }} style={styles.img} resizeMode="cover" />
+                ) : (
+                  <Image source={p.image} style={styles.img} resizeMode="contain" />
+                )}
               </View>
 
               <View style={styles.info}>
@@ -358,6 +400,28 @@ export default function KelolaProdukScreen() {
               </View>
 
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                {/* ── Foto produk ── */}
+                <Text style={styles.fieldLabel}>Foto Produk</Text>
+                <TouchableOpacity style={styles.fotoBox} onPress={pilihFoto} activeOpacity={0.75}>
+                  {fotoUri ? (
+                    <Image source={{ uri: fotoUri }} style={styles.fotoPreview} resizeMode="cover" />
+                  ) : editingFotoUrl ? (
+                    <View style={styles.fotoExisting}>
+                      <Image source={{ uri: editingFotoUrl }} style={styles.fotoPreview} resizeMode="cover" />
+                      <View style={styles.fotoOverlay}>
+                        <Ionicons name="camera-outline" size={24} color={colors.white} />
+                        <Text style={styles.fotoOverlayText}>Ganti foto</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.fotoPlaceholder}>
+                      <Ionicons name="camera-outline" size={32} color={colors.placeholder} />
+                      <Text style={styles.fotoPlaceholderText}>Ketuk untuk pilih foto</Text>
+                      <Text style={styles.fotoPlaceholderSub}>(Opsional)</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
                 <AppInput
                   label="Nama produk"
                   placeholder="Contoh: Uwell Caliburn G2"
@@ -473,6 +537,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerSoft, alignItems: "center", justifyContent: "center",
   },
   deactivateBtn: { backgroundColor: colors.dangerSoft },
+
+  // Foto picker
+  fotoBox: {
+    height: 160,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderStyle: "dashed",
+    overflow: "hidden",
+    marginBottom: 14,
+  },
+  fotoPreview: { width: "100%", height: "100%" },
+  fotoExisting: { width: "100%", height: "100%", position: "relative" },
+  fotoOverlay: {
+    position: "absolute",
+    bottom: 0, left: 0, right: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+  },
+  fotoOverlayText: { color: colors.white, fontSize: 12, fontWeight: "700" },
+  fotoPlaceholder: {
+    flex: 1, alignItems: "center", justifyContent: "center", gap: 6,
+    backgroundColor: colors.tint,
+  },
+  fotoPlaceholderText: { fontSize: 13, color: colors.muted, fontWeight: "600" },
+  fotoPlaceholderSub: { fontSize: 11, color: colors.placeholder },
 
   backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(10,34,24,0.55)" },
   sheet: {

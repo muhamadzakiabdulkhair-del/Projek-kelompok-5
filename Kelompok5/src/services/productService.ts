@@ -42,6 +42,7 @@ export function rowToProduct(row: ProductRow): Product {
     reviews: 0,
     description: row.deskripsi ?? "",
     image: CATEGORY_IMAGES[category] ?? CATEGORY_IMAGES["Aksesori"],
+    fotoUrl: row.foto_url ?? null,
   };
 }
 
@@ -123,4 +124,53 @@ export async function activateProduct(id: string): Promise<void> {
     .eq("id", id);
 
   if (error) throw new Error(error.message);
+}
+
+// ─── STORAGE: upload & hapus foto ────────────────────────────────────────────
+
+/**
+ * Upload foto produk ke bucket 'produk'.
+ * @param uri  URI lokal hasil expo-image-picker (file://...)
+ * @returns    URL publik foto di Supabase Storage
+ */
+export async function uploadFoto(uri: string): Promise<string> {
+  // Baca file sebagai base64 — pakai legacy API (SDK 54+)
+  const FileSystem = await import("expo-file-system/legacy");
+  const { decode }  = await import("base64-arraybuffer");
+
+  const ext      = uri.split(".").pop()?.toLowerCase() ?? "jpg";
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const path     = `produk/${fileName}`;
+
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  const { error: uploadError } = await supabase.storage
+    .from("produk")
+    .upload(path, decode(base64), {
+      contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
+      upsert: false,
+    });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data } = supabase.storage.from("produk").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+/**
+ * Hapus foto lama dari Storage saat produk diubah atau dihapus.
+ * @param publicUrl  URL publik foto (dari kolom foto_url di DB)
+ */
+export async function deleteFoto(publicUrl: string): Promise<void> {
+  // Ambil path file di dalam bucket dari URL publik
+  // Format URL: .../storage/v1/object/public/produk/<path>
+  const marker = "/storage/v1/object/public/produk/";
+  const idx    = publicUrl.indexOf(marker);
+  if (idx === -1) return; // bukan URL storage kita, skip
+
+  const filePath = publicUrl.slice(idx + marker.length);
+  const { error } = await supabase.storage.from("produk").remove([filePath]);
+  if (error) console.warn("Gagal hapus foto:", error.message);
 }
