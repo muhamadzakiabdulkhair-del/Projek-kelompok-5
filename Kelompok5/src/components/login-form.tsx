@@ -4,7 +4,6 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Role } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
-import { useAuth } from "@/context/auth";
 import { mockLogin } from "@/mock/auth";
 import { AppButton } from "./app-button";
 import { AppInput } from "./app-input";
@@ -21,7 +20,6 @@ export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Form login dipakai bersama oleh portal Owner, Karyawan, dan Pelanggan.
 export function LoginForm({ role, redirectTo, initialEmail = "", hint }: Props) {
   const router = useRouter();
-  const { login } = useAuth();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -40,12 +38,8 @@ export function LoginForm({ role, redirectTo, initialEmail = "", hint }: Props) 
     setLoading(true);
     const result = mockLogin({ email: email.trim().toLowerCase(), password, role });
     setLoading(false);
-    if (result.ok && result.user) {
-      login(result.user);
-      router.replace(redirectTo);
-    } else {
-      setFormError(result.message);
-    }
+    if (result.ok) router.replace(redirectTo);
+    else setFormError(result.message);
   }
 
   return (
