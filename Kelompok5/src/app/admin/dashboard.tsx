@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -13,11 +14,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BottomNav } from "@/components/bottom-nav";
-import { BrandLogo } from "@/components/brand-logo";
-import { DatePickerInput } from "@/components/date-picker-input";
-import { tabsForRole } from "@/constants/navigation";
+import { BottomNav }        from "@/components/bottom-nav";
+import { BrandLogo }        from "@/components/brand-logo";
+import { DatePickerInput }  from "@/components/date-picker-input";
+import { tabsForRole }      from "@/constants/navigation";
 import { colors, font, radius, spacing } from "@/constants/palette";
+import { type Product }     from "@/data/products";
+import { fetchProducts }    from "@/services/productService";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -270,6 +273,26 @@ export default function AdminDashboard() {
   const router = useRouter();
   const today  = new Date();
 
+  // ── Data stok realtime dari Supabase ──────────────────────────────────────
+  const [dbProducts, setDbProducts] = useState<Product[]>([]);
+  const [loadingDb,  setLoadingDb]  = useState(true);
+
+  useEffect(() => {
+    fetchProducts()
+      .then(setDbProducts)
+      .catch(() => setDbProducts([]))
+      .finally(() => setLoadingDb(false));
+  }, []);
+
+  // Statistik stok dihitung dari Supabase
+  const aktif      = dbProducts.filter((p) => p.isActive !== false);
+  const stokHabis  = aktif.filter((p) => p.stock <= 0).length;
+  const stokMenipis= aktif.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const stokAman   = aktif.filter((p) => p.stock > 5).length;
+  const nilaiStok  = aktif.reduce((s, p) => s + p.price * p.stock, 0);
+  const modalStok  = aktif.reduce((s, p) => s + p.purchasePrice * p.stock, 0);
+  const potensiLaba= nilaiStok - modalStok;
+
   // Periode aktif: "YYYY-MM-DD" format tapi kita cuma pakai year+month
   // Simpan sebagai "YYYY-MM-01" supaya bisa pakai DatePickerInput
   const initDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,"0")}-01`;
@@ -337,7 +360,56 @@ export default function AdminDashboard() {
           </Text>
         </View>
 
-        {/* ── KARTU STATISTIK ── */}
+        {/* ── KARTU STOK REALTIME (Supabase) ── */}
+        <View style={s.stokSectionHeader}>
+          <Ionicons name="cube-outline" size={16} color={GREEN} />
+          <Text style={s.sectionTitle}>Statistik Stok Saat Ini</Text>
+          {loadingDb && <ActivityIndicator size="small" color={GREEN} style={{ marginLeft: 6 }} />}
+        </View>
+
+        {/* 3 kartu status stok */}
+        <View style={s.stokRow}>
+          <View style={[s.stokCard, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="checkmark-circle" size={20} color={GREEN} />
+            <Text style={[s.stokNum, { color: GREEN }]}>{stokAman}</Text>
+            <Text style={s.stokLabel}>Stok Aman</Text>
+          </View>
+          <View style={[s.stokCard, { backgroundColor: colors.warningSoft }]}>
+            <Ionicons name="warning" size={20} color={colors.warning} />
+            <Text style={[s.stokNum, { color: colors.warning }]}>{stokMenipis}</Text>
+            <Text style={s.stokLabel}>Menipis</Text>
+          </View>
+          <View style={[s.stokCard, { backgroundColor: colors.dangerSoft }]}>
+            <Ionicons name="close-circle" size={20} color={colors.danger} />
+            <Text style={[s.stokNum, { color: colors.danger }]}>{stokHabis}</Text>
+            <Text style={s.stokLabel}>Habis</Text>
+          </View>
+        </View>
+
+        {/* 3 kartu finansial stok */}
+        <View style={s.stokRow}>
+          <View style={[s.stokFinCard, { backgroundColor: "#EAF3FF" }]}>
+            <Text style={s.stokFinLabel}>Nilai Stok</Text>
+            <Text style={[s.stokFinValue, { color: "#1D5FB8" }]}>{rupiah(nilaiStok)}</Text>
+          </View>
+          <View style={[s.stokFinCard, { backgroundColor: "#FFF0F0" }]}>
+            <Text style={s.stokFinLabel}>Modal Stok</Text>
+            <Text style={[s.stokFinValue, { color: colors.danger }]}>{rupiah(modalStok)}</Text>
+          </View>
+          <View style={[s.stokFinCard, { backgroundColor: "#EEF9F2" }]}>
+            <Text style={s.stokFinLabel}>Potensi Laba</Text>
+            <Text style={[s.stokFinValue, { color: GREEN }]}>{rupiah(potensiLaba)}</Text>
+          </View>
+        </View>
+
+        {/* Divider */}
+        <View style={s.divider} />
+
+        {/* ── KARTU STATISTIK PENJUALAN (dummy) ── */}
+        <View style={[s.stokSectionHeader, { marginBottom: 10 }]}>
+          <Ionicons name="trending-up-outline" size={16} color={GREEN} />
+          <Text style={s.sectionTitle}>Statistik Penjualan · {getBulanLabel(activePeriod)}</Text>
+        </View>
         <View style={s.grid}>
           {statCards.map((c) => (
             <View key={c.label} style={[s.statCard, { backgroundColor: c.bg }]}>
@@ -470,7 +542,28 @@ const s = StyleSheet.create({
   grid: {
     flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 14,
   },
-  statCard: {
+
+  // ── Stok realtime ──
+  stokSectionHeader: {
+    flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10,
+  },
+  stokRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  stokCard: {
+    flex: 1, borderRadius: radius.md, padding: 12,
+    alignItems: "center", gap: 4,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  stokNum:   { fontSize: 22, fontWeight: "900" },
+  stokLabel: { fontSize: 10, color: colors.muted, fontWeight: "600", textAlign: "center" },
+  stokFinCard: {
+    flex: 1, borderRadius: radius.md, padding: 10,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  stokFinLabel: { fontSize: 10, color: colors.muted, fontWeight: "600" },
+  stokFinValue: { fontSize: 13, fontWeight: "900", marginTop: 2 },
+  divider: {
+    height: 1, backgroundColor: colors.border, marginVertical: 14,
+  },  statCard: {
     width: "48%" as any, flexGrow: 1, flexBasis: 140,
     borderRadius: radius.lg, padding: 14, gap: 8,
     borderWidth: 1, borderColor: "rgba(0,0,0,0.04)",
