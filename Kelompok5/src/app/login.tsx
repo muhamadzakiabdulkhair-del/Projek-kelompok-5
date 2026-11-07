@@ -54,6 +54,7 @@ export default function LoginScreen() {
       const result = mockLogin({
         email: email.trim().toLowerCase(),
         password,
+        role: "pelanggan",
       });
 
       if (result.ok) {

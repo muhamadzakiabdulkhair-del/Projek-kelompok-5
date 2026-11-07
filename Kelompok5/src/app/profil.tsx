@@ -93,7 +93,6 @@ export default function ProfilScreen() {
         {/* Info detail */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Informasi Akun</Text>
-
           {[
             { icon: "person-outline" as const, label: "Nama", value: profile.name },
             { icon: "mail-outline" as const, label: "Email", value: profile.email },

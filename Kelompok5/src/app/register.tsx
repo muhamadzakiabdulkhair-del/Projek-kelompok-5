@@ -60,6 +60,7 @@ export default function RegisterScreen() {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
+        role: "pelanggan",
       });
 
       if (result.ok) {

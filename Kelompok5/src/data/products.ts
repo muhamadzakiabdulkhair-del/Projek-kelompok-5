@@ -9,12 +9,13 @@ export type Product = {
   category: Category;
   price: number;
   purchasePrice: number; // Harga modal produk
-  isActive: boolean; // Status produk aktif/nonaktif
+  isActive: boolean;     // Status produk aktif/nonaktif
   stock: number;
   rating: number;
   reviews: number;
   description: string;
   image: ImageSourcePropType;
+  fotoUrl?: string | null; // URL foto di Supabase Storage
 };
 
 export const CATEGORIES: Category[] = ["Pod", "Mod", "Liquid", "Coil", "Aksesori"];
