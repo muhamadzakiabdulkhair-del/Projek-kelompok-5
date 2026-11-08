@@ -118,7 +118,7 @@ export default function ProdukDetailScreen() {
     : `Stok tersedia · ${product.stock}`;
 
   function addToCart() {
-    add(product!.id, qty);
+    add(product!, qty);
     const msg = `${qty} × ${product!.name} masuk ke keranjang.`;
     if (Platform.OS === "web") window.alert(msg);
     else

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { Alert, FlatList, Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "@/components/app-button";
 import { BottomNav } from "@/components/bottom-nav";
@@ -32,7 +32,24 @@ export default function PesananScreen() {
   const role = parseRole(roleParam);
   const isStaff = role !== "pelanggan";
 
-  const { orders, advanceStatus } = useOrders();
+  const { orders, loading, refresh, advanceStatus } = useOrders();
+
+  // Muat ulang tiap layar ini dibuka, supaya perubahan dari perangkat lain ikut tampil
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  async function handleAdvance(id: string) {
+    try {
+      await advanceStatus(id);
+    } catch (err: any) {
+      const msg = err?.message ?? "Terjadi kesalahan.";
+      if (Platform.OS === "web") window.alert(`Gagal mengubah status: ${msg}`);
+      else Alert.alert("Gagal mengubah status", msg);
+    }
+  }
   const [filter, setFilter] = useState("Semua");
 
   const visible = useMemo(
@@ -53,6 +70,8 @@ export default function PesananScreen() {
 
       <FlatList
         data={visible}
+        refreshing={loading}
+        onRefresh={refresh}
         keyExtractor={(o) => o.id}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -88,7 +107,7 @@ export default function PesananScreen() {
                     variant="soft"
                     icon="arrow-forward"
                     label={next === "Diproses" ? "Proses" : "Selesaikan"}
-                    onPress={() => advanceStatus(item.id)}
+                    onPress={() => handleAdvance(item.id)}
                   />
                 ) : null}
               </View>
