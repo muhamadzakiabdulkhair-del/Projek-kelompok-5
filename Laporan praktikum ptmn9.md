@@ -4,7 +4,7 @@
 
 ## Studi Kasus: Vapestore
 
-# Hasil Uji Coba End-to-End (Checklist Capaian)
+# Hasil Uji Coba End-to-End (Produk)
 
 ## Uji 1: Koneksi
 ![alt text](hasil_tes_uji1/uji_koneksi.png)
@@ -113,3 +113,44 @@ Tujuannya memastikan setiap file di bucket produk dipakai oleh satu produk, dan 
 - Query 3: daftar lengkap untuk pembanding
 
 ![alt text](hasil_tes_uji1/12_3.png)
+
+# Hasil Uji Coba End-to-End (Pesanan)
+
+## Uji 1: Read
+- Login sebagai pelanggan. Daftar dulu lewat halaman Register (akun hanya tersimpan di memori, jadi hilang saat aplikasi di-restart).
+- Buka tab Pesanan.
+- Lulus kalau halaman terbuka dengan tulisan “Belum ada pesanan” dan tidak ada error.
+- bukti:
+
+![alt text](hasil_tes_uji1/uji1_psnn.gif)
+
+## Uji 2: Create
+- Buka produk TEST - fto, lalu Tambah ke Keranjang, lalu Lihat Keranjang.
+- Pilih metode pembayaran, lalu tekan Buat Pesanan.
+- Lulus kalau:
+    - Alert “Pesanan Dibuat” menampilkan nomor INV-1025.
+    - Di tab Pesanan, pesanan itu muncul dengan status Menunggu Bayar.
+    - Di Supabase Table Editor → orders (klik refresh) ada baris baru: id = INV-1025, customer = Saya, items, total (subtotal + 15.000 ongkir), method, dan status.
+- bukti:
+
+![alt text](hasil_tes_uji1/uji2_psnn.gif)
+
+![alt text](hasil_tes_uji1/uji2_psnn_spbs.png)
+
+## Uji 3: Update
+- Tombol Proses dan Selesaikan hanya tampil untuk peran staf. Di aplikasi, akun pelanggan hanya melihat riwayat.
+- Keluar dari akun pelanggan, lalu login sebagai karyawan (karyawan@vapestore.com / karyawan123) atau owner (admin@vapestore.com / admin123). Pilih peran yang sesuai di layar login kalau diminta.
+- Buka Pesanan. INV-1025 harus tampil, karena sekarang pesanan dibaca dari Supabase, bukan dari memori akun.
+- Tekan Proses, status jadi Diproses. Tekan Selesaikan, status jadi Selesai.
+- Lulus kalau kolom status di Table Editor ikut berubah di tiap langkah (refresh dulu). 
+- bukti:
+
+![alt text](hasil_tes_uji1/uji3_psnn.gif)
+
+## Uji 4: Persistensi
+- Tutup Expo Go sepenuhnya, hentikan Expo dengan Ctrl+C, lalu jalankan npx expo start -c.
+- Buka lagi aplikasinya dan login sebagai karyawan.
+- Lulus kalau INV-1025 masih ada dengan status terakhir (Selesai).
+- bukti:
+
+![alt text](hasil_tes_uji1/uji4_psnn.gif)

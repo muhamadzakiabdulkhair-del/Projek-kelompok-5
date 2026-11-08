@@ -156,28 +156,26 @@ export default function KeranjangScreen() {
     };
   }
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (lines.length === 0) return;
 
     const payLabel = PAYMENT_OPTIONS.find((p) => p.key === payment)?.label ?? payment;
 
-    if (Platform.OS === "web") {
-      const order = buildOrder();
-      addOrder(order);
-      clear();
-      window.alert(`Pesanan ${order.id} berhasil dibuat!\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`);
-      router.replace("/pesanan");
-      return;
-    }
-
-    setLoading(true);
-    setTimeout(() => {
-      const order = buildOrder();
-      addOrder(order);
+    try {
+      setLoading(true);
+      const saved = await addOrder(buildOrder()); // id (INV-xxxx) dari database
       setLoading(false);
+
+      if (Platform.OS === "web") {
+        clear();
+        window.alert(`Pesanan ${saved.id} berhasil dibuat!\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`);
+        router.replace("/pesanan");
+        return;
+      }
+
       Alert.alert(
         "Pesanan Dibuat ✓",
-        `${order.id}\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`,
+        `${saved.id}\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`,
         [
           {
             text: "Lihat Pesanan",
@@ -193,7 +191,12 @@ export default function KeranjangScreen() {
           },
         ]
       );
-    }, 600);
+    } catch (err: any) {
+      setLoading(false);
+      const msg = err?.message ?? "Terjadi kesalahan.";
+      if (Platform.OS === "web") window.alert(`Gagal membuat pesanan: ${msg}`);
+      else Alert.alert("Gagal membuat pesanan", msg);
+    }
   };
 
   // ── Header kanan: jumlah item ──

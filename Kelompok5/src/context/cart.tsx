@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { PRODUCTS, type Product } from "@/data/products";
+import type { Product } from "@/data/products";
 
 export type CartLine = { product: Product; qty: number };
 
@@ -7,7 +7,7 @@ type CartValue = {
   lines: CartLine[];
   count: number;
   total: number;
-  add: (productId: string, qty?: number) => void;
+  add: (product: Product, qty?: number) => void;
   setQty: (productId: string, qty: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
@@ -16,24 +16,36 @@ type CartValue = {
 const CartContext = createContext<CartValue | null>(null);
 
 // State keranjang sederhana (in-memory) supaya badge & halaman keranjang konsisten.
+// Yang disimpan adalah produk lengkap (bukan hanya id), sehingga produk dari
+// Supabase (id berbentuk uuid) ikut dikenali. Sebelumnya keranjang mencocokkan id
+// ke data dummy PRODUCTS, sehingga produk dari database tidak pernah muncul.
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [qtyById, setQtyById] = useState<Record<string, number>>({});
+  const [items, setItems] = useState<Record<string, CartLine>>({});
 
   const value = useMemo<CartValue>(() => {
-    const lines = PRODUCTS.filter((p) => qtyById[p.id] > 0).map((p) => ({
-      product: p,
-      qty: qtyById[p.id],
-    }));
+    const lines = Object.values(items).filter((l) => l.qty > 0);
     return {
       lines,
       count: lines.reduce((n, l) => n + l.qty, 0),
       total: lines.reduce((n, l) => n + l.qty * l.product.price, 0),
-      add: (id, qty = 1) => setQtyById((old) => ({ ...old, [id]: (old[id] ?? 0) + qty })),
-      setQty: (id, qty) => setQtyById((old) => ({ ...old, [id]: Math.max(0, qty) })),
-      remove: (id) => setQtyById((old) => ({ ...old, [id]: 0 })),
-      clear: () => setQtyById({}),
+      add: (product, qty = 1) =>
+        setItems((old) => ({
+          ...old,
+          [product.id]: { product, qty: (old[product.id]?.qty ?? 0) + qty },
+        })),
+      setQty: (id, qty) =>
+        setItems((old) =>
+          old[id] ? { ...old, [id]: { ...old[id], qty: Math.max(0, qty) } } : old,
+        ),
+      remove: (id) =>
+        setItems((old) => {
+          const next = { ...old };
+          delete next[id];
+          return next;
+        }),
+      clear: () => setItems({}),
     };
-  }, [qtyById]);
+  }, [items]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

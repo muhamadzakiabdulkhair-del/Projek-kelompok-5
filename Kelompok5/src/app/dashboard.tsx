@@ -153,7 +153,7 @@ export default function DashboardScreen() {
             product={item}
             style={styles.pickCard}
             onPress={() => openDetail(item)}
-            onAdd={() => add(item.id)}
+            onAdd={() => add(item)}
           />
         )}
       />
@@ -209,7 +209,7 @@ export default function DashboardScreen() {
             product={item}
             style={styles.gridCard}
             onPress={() => openDetail(item)}
-            onAdd={() => add(item.id)}
+            onAdd={() => add(item)}
           />
         )}
       />
