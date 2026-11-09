@@ -6,6 +6,9 @@
 
 # Hasil Uji Coba End-to-End (Produk)
 
+## uji produk:
+![alt text](hasil_tes_uji1/vid_produk.gif)
+
 ## Uji 1: Koneksi
 ![alt text](hasil_tes_uji1/uji_koneksi.png)
 
