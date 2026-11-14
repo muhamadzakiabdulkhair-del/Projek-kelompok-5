@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,7 +8,6 @@ import { BrandLogo } from "@/components/brand-logo";
 import { ScreenHeader } from "@/components/screen-header";
 import {
   LOGIN_HREF,
-  parseRole,
   tabsForRole,
   type Role,
 } from "@/constants/navigation";
@@ -68,10 +67,9 @@ function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
 export default function ProfilScreen() {
   const router = useRouter();
   const { profil, keluar } = useAuth();
-  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
 
   // Peran diambil dari akun yang login, bukan dari alamat halaman
-  const role: Role = profil?.peran ?? parseRole(roleParam);
+  const role: Role = profil?.peran ?? "pelanggan";
   const profile = profil
     ? {
         name: profil.nama || profil.email,
@@ -91,7 +89,7 @@ export default function ProfilScreen() {
 
   const handleLogout = async () => {
     await keluar();
-    router.replace(LOGIN_HREF[role]);
+    router.replace(LOGIN_HREF);
   };
 
   return (

@@ -20,15 +20,15 @@ const CUSTOMER_TABS: NavTab[] = [
 
 const OWNER_TABS: NavTab[] = [
   { key: "dashboard", label: "Dashboard", icon: "stats-chart-outline", iconActive: "stats-chart", href: "/admin/dashboard" },
-  { key: "produk", label: "Produk", icon: "cube-outline", iconActive: "cube", href: "/kelola-produk?role=owner" as Href },
+  { key: "produk", label: "Produk", icon: "cube-outline", iconActive: "cube", href: "/kelola-produk" },
   { key: "laporan", label: "Laporan", icon: "document-text-outline", iconActive: "document-text", href: "/admin/laporan" },
-  { key: "profil", label: "Profil", icon: "person-outline", iconActive: "person", href: "/profil?role=owner" as Href },
+  { key: "profil", label: "Profil", icon: "person-outline", iconActive: "person", href: "/profil" },
 ];
 
 const STAFF_TABS: NavTab[] = [
-  { key: "produk", label: "Produk", icon: "cube-outline", iconActive: "cube", href: "/kelola-produk?role=karyawan" as Href },
-  { key: "pesanan", label: "Pesanan", icon: "receipt-outline", iconActive: "receipt", href: "/pesanan?role=karyawan" as Href },
-  { key: "profil", label: "Profil", icon: "person-outline", iconActive: "person", href: "/profil?role=karyawan" as Href },
+  { key: "produk", label: "Produk", icon: "cube-outline", iconActive: "cube", href: "/kelola-produk" },
+  { key: "pesanan", label: "Pesanan", icon: "receipt-outline", iconActive: "receipt", href: "/pesanan" },
+  { key: "profil", label: "Profil", icon: "person-outline", iconActive: "person", href: "/profil" },
 ];
 
 export function tabsForRole(role: Role): NavTab[] {
@@ -37,12 +37,12 @@ export function tabsForRole(role: Role): NavTab[] {
   return CUSTOMER_TABS;
 }
 
-export function parseRole(value?: string): Role {
-  return value === "owner" || value === "karyawan" ? value : "pelanggan";
-}
+// Satu halaman login untuk semua peran
+export const LOGIN_HREF: Href = "/login";
 
-export const LOGIN_HREF: Record<Role, Href> = {
-  owner: "/admin/login",
-  karyawan: "/karyawan/login",
-  pelanggan: "/pelanggan/login",
+// Beranda tiap peran: tujuan setelah login, atau bila salah masuk halaman
+export const BERANDA: Record<Role, Href> = {
+  owner: "/admin/dashboard",
+  karyawan: "/kelola-produk",
+  pelanggan: "/dashboard",
 };

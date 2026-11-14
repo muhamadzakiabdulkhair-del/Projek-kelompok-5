@@ -30,11 +30,7 @@ type AuthValue = {
   session: Session | null;
   profil: Profil | null;
   memuat: boolean;
-  masuk: (
-    email: string,
-    password: string,
-    harusPeran?: Role,
-  ) => Promise<HasilAuth>;
+  masuk: (email: string, password: string) => Promise<HasilAuth>;
   daftar: (nama: string, email: string, password: string) => Promise<HasilAuth>;
   keluar: () => Promise<void>;
   muatUlangProfil: () => Promise<void>;
@@ -97,11 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [sesiSiap, session?.user?.id]);
 
   const masuk = useCallback(
-    async (
-      email: string,
-      password: string,
-      harusPeran?: Role,
-    ): Promise<HasilAuth> => {
+    async (email: string, password: string): Promise<HasilAuth> => {
       sedangMasuk.current = true;
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -129,13 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (p.status === "Nonaktif") {
           await supabase.auth.signOut();
           return { ok: false, message: "Akun nonaktif. Hubungi owner." };
-        }
-        if (harusPeran && p.peran !== harusPeran) {
-          await supabase.auth.signOut();
-          return {
-            ok: false,
-            message: "Akun ini tidak terdaftar di portal ini.",
-          };
         }
         setProfil(p);
         setMemuat(false);

@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useAuth } from "@/context/auth";
 import type { Product } from "@/data/products";
 
 export type CartLine = { product: Product; qty: number };
@@ -21,6 +22,12 @@ const CartContext = createContext<CartValue | null>(null);
 // ke data dummy PRODUCTS, sehingga produk dari database tidak pernah muncul.
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Record<string, CartLine>>({});
+  const { profil } = useAuth();
+
+  // Keranjang hanya milik pelanggan yang sedang login: kosongkan saat keluar
+  useEffect(() => {
+    if (!profil) setItems({});
+  }, [profil]);
 
   const value = useMemo<CartValue>(() => {
     const lines = Object.values(items).filter((l) => l.qty > 0);

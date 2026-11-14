@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -28,7 +27,8 @@ import { FilterChips } from "@/components/filter-chips";
 import { ScreenHeader } from "@/components/screen-header";
 import { SearchBar } from "@/components/search-bar";
 
-import { parseRole, tabsForRole } from "@/constants/navigation";
+import { tabsForRole } from "@/constants/navigation";
+import { useAuth } from "@/context/auth";
 import { colors, radius } from "@/constants/palette";
 
 import {
@@ -83,8 +83,9 @@ function confirmStatusChange(
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function KelolaProdukScreen() {
-  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
-  const role = parseRole(roleParam);
+  // Peran dari akun yang login (halaman ini sudah dijaga _layout: hanya owner/karyawan)
+  const { profil } = useAuth();
+  const role = profil?.peran ?? "pelanggan";
   const isAdmin = role === "owner";
 
   // ── State ──────────────────────────────────────────────────────────────────

@@ -1,29 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, type Href } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import type { Role } from "@/constants/navigation";
+import { BERANDA } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
 import { useAuth } from "@/context/auth";
 import { AppButton } from "./app-button";
 import { AppInput } from "./app-input";
 
 type Props = {
-  role: Role;
-  redirectTo: Href;
   initialEmail?: string;
-  hint?: string;
 };
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Form login dipakai bersama oleh portal Owner, Karyawan, dan Pelanggan.
-export function LoginForm({
-  role,
-  redirectTo,
-  initialEmail = "",
-  hint,
-}: Props) {
+// Satu form login untuk semua peran. Tujuan setelah login ditentukan oleh peran akun.
+export function LoginForm({ initialEmail = "" }: Props) {
   const router = useRouter();
   const { masuk } = useAuth();
   const [email, setEmail] = useState(initialEmail);
@@ -46,8 +38,8 @@ export function LoginForm({
 
     setLoading(true);
     try {
-      const hasil = await masuk(email.trim().toLowerCase(), password, role);
-      if (hasil.ok) router.replace(redirectTo);
+      const hasil = await masuk(email.trim().toLowerCase(), password);
+      if (hasil.ok) router.replace(BERANDA[hasil.peran]);
       else setFormError(hasil.message);
     } catch {
       setFormError("Tidak dapat terhubung. Periksa koneksi internet.");
@@ -96,13 +88,6 @@ export function LoginForm({
         onPress={submit}
         loading={loading}
       />
-
-      {hint ? (
-        <View style={styles.hint}>
-          <Text style={styles.hintTitle}>Akun default (testing)</Text>
-          <Text style={styles.hintText}>{hint}</Text>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -130,17 +115,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.danger,
   },
-  hint: {
-    marginTop: 16,
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
-    padding: 12,
-  },
-  hintTitle: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: colors.primary,
-    marginBottom: 2,
-  },
-  hintText: { fontSize: 12, color: colors.muted },
 });

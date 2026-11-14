@@ -23,13 +23,15 @@ import { QtyStepper }  from "@/components/qty-stepper";
 import { ScreenHeader } from "@/components/screen-header";
 import { colors, radius } from "@/constants/palette";
 import { useCart } from "@/context/cart";
+import { useBelanja } from "@/hooks/use-belanja";
 import { formatRupiah, type Product } from "@/data/products";
 import { fetchProducts } from "@/services/productService";
 
 export default function ProdukDetailScreen() {
   const router       = useRouter();
   const { id }       = useLocalSearchParams<{ id: string }>();
-  const { add, count } = useCart();
+  const { count } = useCart();
+  const { tambah } = useBelanja();
   const [qty, setQty] = useState(1);
 
   // ── Fetch produk dari Supabase ────────────────────────────────────────────
@@ -118,7 +120,7 @@ export default function ProdukDetailScreen() {
     : `Stok tersedia · ${product.stock}`;
 
   function addToCart() {
-    add(product!, qty);
+    if (!tambah(product!, qty)) return; // tamu diarahkan login, staf ditolak
     const msg = `${qty} × ${product!.name} masuk ke keranjang.`;
     if (Platform.OS === "web") window.alert(msg);
     else

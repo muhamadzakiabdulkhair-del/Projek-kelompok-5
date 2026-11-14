@@ -474,7 +474,7 @@ export default function AdminDashboard() {
             style={s.logoutBtn}
             onPress={async () => {
               await keluar();
-              router.replace("/admin/login");
+              router.replace("/login");
             }}
           >
             <Text style={s.logoutText}>Keluar</Text>
