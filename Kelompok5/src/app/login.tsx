@@ -1,496 +1,209 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { mockLogin } from "@/mock/auth";
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { AppButton } from "@/components/app-button";
+import { AppInput } from "@/components/app-input";
+import { AuthLayout } from "@/components/auth-layout";
+import { EMAIL_REGEX, LoginForm } from "@/components/login-form";
+import { colors, radius } from "@/constants/palette";
+import { useAuth } from "@/context/auth";
+
+type Tab = "login" | "register";
+type RegErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirm?: string;
+};
 
 export default function LoginScreen() {
-  const router = useRouter();
+  const { daftar } = useAuth();
+  const [tab, setTab] = useState<Tab>("login");
+  const [justRegistered, setJustRegistered] = useState("");
+  const [pesanSukses, setPesanSukses] = useState("");
+
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [errors, setErrors] = useState<RegErrors>({});
+  const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({
-    visible: false,
-    title: "",
-    message: "",
-  });
 
-  const showMessage = (title: string, message: string) => {
-    if (Platform.OS === "web") {
-      setNotification({ visible: true, title, message });
-    } else {
-      Alert.alert(title, message);
-    }
-  };
-
-  useEffect(() => {
-    if (!notification.visible) return;
-    const timer = setTimeout(() => {
-      setNotification({ visible: false, title: "", message: "" });
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [notification]);
-
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      showMessage("Login", "Email dan kata sandi wajib diisi.");
-      return;
-    }
+  async function register() {
+    const e: RegErrors = {};
+    if (!name.trim()) e.name = "Nama lengkap wajib diisi.";
+    if (!email.trim()) e.email = "Email wajib diisi.";
+    else if (!EMAIL_REGEX.test(email.trim()))
+      e.email = "Format email belum benar.";
+    if (!password) e.password = "Kata sandi wajib diisi.";
+    else if (password.length < 8) e.password = "Minimal 8 karakter.";
+    if (confirm !== password) e.confirm = "Konfirmasi kata sandi tidak cocok.";
+    setErrors(e);
+    setFormError("");
+    if (Object.keys(e).length > 0) return;
 
     setLoading(true);
     try {
-      const result = mockLogin({
-        email: email.trim().toLowerCase(),
+      const hasil = await daftar(
+        name.trim(),
+        email.trim().toLowerCase(),
         password,
-        role: "pelanggan",
-      });
-
-      if (result.ok) {
-        router.replace("/dashboard");
+      );
+      if (hasil.ok) {
+        setJustRegistered(email.trim().toLowerCase());
+        setPesanSukses(
+          hasil.perluVerifikasi
+            ? "Pendaftaran berhasil. Cek email kamu dan klik tautan verifikasi, lalu masuk."
+            : "Pendaftaran berhasil. Silakan masuk.",
+        );
+        setPassword("");
+        setConfirm("");
+        setTab("login");
       } else {
-        showMessage("Login gagal", result.message);
+        setFormError(hasil.message);
       }
+    } catch {
+      setFormError("Tidak dapat terhubung. Periksa koneksi internet.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRegister = () => {
-    router.push("/register");
-  };
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {notification.visible && Platform.OS === "web" && (
-        <View style={styles.notificationOverlay}>
-          <View style={styles.notificationCard}>
-            <View style={styles.notificationIcon}>
-              <Text style={styles.notificationIconText}>✓</Text>
+    <AuthLayout>
+      <View style={styles.tabs}>
+        {(["login", "register"] as Tab[]).map((t) => (
+          <Pressable
+            key={t}
+            style={[styles.tab, tab === t && styles.tabActive]}
+            onPress={() => setTab(t)}
+          >
+            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
+              {t === "login" ? "Masuk" : "Daftar"}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {tab === "login" ? (
+        <View>
+          {justRegistered ? (
+            <View style={styles.success}>
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={colors.primary}
+              />
+              <Text style={styles.successText}>{pesanSukses}</Text>
             </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationTitle}>{notification.title}</Text>
-              <Text style={styles.notificationMessage}>
-                {notification.message}
-              </Text>
+          ) : null}
+          <LoginForm key={justRegistered} initialEmail={justRegistered} />
+        </View>
+      ) : (
+        <View>
+          {formError ? (
+            <View style={styles.banner}>
+              <Ionicons name="alert-circle" size={16} color={colors.danger} />
+              <Text style={styles.bannerText}>{formError}</Text>
             </View>
-            <Pressable
-              onPress={() =>
-                setNotification({ visible: false, title: "", message: "" })
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Tutup notifikasi"
-            >
-              <Text style={styles.notificationClose}>×</Text>
-            </Pressable>
-          </View>
+          ) : null}
+          <AppInput
+            label="Nama lengkap"
+            icon="person-outline"
+            placeholder="Nama kamu"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            error={errors.name}
+          />
+          <AppInput
+            label="Email"
+            icon="mail-outline"
+            placeholder="nama@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={errors.email}
+          />
+          <AppInput
+            label="Kata sandi"
+            icon="lock-closed-outline"
+            placeholder="Minimal 8 karakter"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            error={errors.password}
+          />
+          <AppInput
+            label="Konfirmasi kata sandi"
+            icon="lock-closed-outline"
+            placeholder="Ulangi kata sandi"
+            value={confirm}
+            onChangeText={setConfirm}
+            secureTextEntry
+            autoCapitalize="none"
+            error={errors.confirm}
+          />
+          <AppButton
+            label="Daftar"
+            icon="person-add-outline"
+            onPress={register}
+            loading={loading}
+          />
         </View>
       )}
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.logoSection}>
-            <View style={styles.logo}>
-              <Text style={styles.logoIcon}>♨</Text>
-            </View>
-            <Text style={styles.brand}>
-              Vape<Text style={styles.brandGreen}>Store</Text>
-            </Text>
-            <Text style={styles.tagline}>Your Vape, Our Priority</Text>
-          </View>
-
-          <View style={styles.formCard}>
-            <View style={styles.tabs}>
-              <View style={styles.activeTab}>
-                <Text style={styles.activeTabText}>Login</Text>
-                <View style={styles.tabUnderline} />
-              </View>
-              <Pressable style={styles.inactiveTab} onPress={handleRegister}>
-                <Text style={styles.inactiveTabText}>Register</Text>
-              </Pressable>
-            </View>
-
-            <Text style={styles.heading}>Selamat datang!</Text>
-            <Text style={styles.subtitle}>Masuk ke akun VapeStore kamu.</Text>
-
-            <Text style={styles.label}>Email</Text>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputIcon}>✉</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Masukkan email"
-                placeholderTextColor="#9299A3"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                accessibilityLabel="Email"
-                returnKeyType="next"
-              />
-            </View>
-
-            <Text style={styles.label}>Kata sandi</Text>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputIcon}>♙</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Masukkan kata sandi"
-                placeholderTextColor="#9299A3"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="current-password"
-                accessibilityLabel="Kata sandi"
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"
-                }
-              >
-                <Text style={styles.showPassword}>
-                  {showPassword ? "Sembunyi" : "Lihat"}
-                </Text>
-              </Pressable>
-            </View>
-
-            <Pressable
-              style={styles.forgotButton}
-              onPress={() =>
-                showMessage(
-                  "Lupa kata sandi",
-                  "Fitur pemulihan akun akan dibuat pada tahap berikutnya.",
-                )
-              }
-            >
-              <Text style={styles.forgotText}>Lupa kata sandi?</Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.loginButton,
-                pressed && styles.buttonPressed,
-                loading && styles.buttonDisabled,
-              ]}
-              onPress={handleLogin}
-              disabled={loading}
-              accessibilityRole="button"
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.loginButtonText}>Masuk</Text>
-              )}
-            </Pressable>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.divider} />
-              <Text style={styles.orText}>atau</Text>
-              <View style={styles.divider} />
-            </View>
-
-            <View style={styles.registerRow}>
-              <Text style={styles.registerText}>Belum punya akun? </Text>
-              <Pressable onPress={handleRegister}>
-                <Text style={styles.registerLink}>Daftar di sini</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <Text style={styles.footer}>VapeStore © 2026</Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  notificationOverlay: {
-    position: "absolute",
-    top: 20,
-    left: 16,
-    right: 16,
-    zIndex: 9999,
-    alignItems: "center",
-  },
-  notificationCard: {
-    width: "100%",
-    maxWidth: 440,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D1FAE5",
-    borderLeftWidth: 5,
-    borderLeftColor: "#047857",
-    borderRadius: 14,
-    padding: 16,
-    gap: 12,
-    elevation: 8,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-  },
-  notificationIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  notificationIconText: {
-    color: "#047857",
-    fontSize: 22,
-    fontWeight: "700",
-  },
-  notificationContent: {
-    flex: 1,
-  },
-  notificationTitle: {
-    color: "#064E3B",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  notificationMessage: {
-    color: "#4B5563",
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  notificationClose: {
-    color: "#6B7280",
-    fontSize: 25,
-    paddingHorizontal: 4,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F4F7F6",
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  logoSection: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  logo: {
-    width: 66,
-    height: 66,
-    borderRadius: 22,
-    backgroundColor: "#E1F4EB",
-    borderWidth: 1,
-    borderColor: "#B8E5D0",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  logoIcon: {
-    fontSize: 36,
-    color: "#087F54",
-    transform: [{ rotate: "-20deg" }],
-  },
-  brand: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#17221D",
-    letterSpacing: -1,
-  },
-  brandGreen: {
-    color: "#07865A",
-  },
-  tagline: {
-    fontSize: 13,
-    color: "#69756F",
-    marginTop: 5,
-  },
-  formCard: {
-    width: "100%",
-    maxWidth: 440,
-    alignSelf: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
-    borderWidth: 1,
-    borderColor: "#E7ECE9",
-    shadowColor: "#183D2E",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
-    elevation: 3,
-  },
   tabs: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8ECEA",
-    marginBottom: 24,
-  },
-  activeTab: {
-    flex: 1,
-    alignItems: "center",
-    paddingBottom: 13,
-    borderBottomWidth: 3,
-    borderBottomColor: "#07865A",
-  },
-  activeTabText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#07865A",
-  },
-  tabUnderline: {},
-  inactiveTab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingBottom: 13,
-  },
-  inactiveTabText: {
-    fontSize: 15,
-    color: "#68746E",
-  },
-  heading: {
-    fontSize: 23,
-    fontWeight: "800",
-    color: "#19241F",
-  },
-  subtitle: {
-    fontSize: 13,
-    color: "#7A847E",
-    marginTop: 6,
-    marginBottom: 22,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#35443B",
-    marginBottom: 8,
-  },
-  inputContainer: {
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#DFE6E1",
-    borderRadius: 11,
-    paddingHorizontal: 13,
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    padding: 4,
     marginBottom: 18,
-    backgroundColor: "#FFFFFF",
   },
-  inputIcon: {
-    width: 28,
-    fontSize: 18,
-    color: "#718078",
-  },
-  input: {
+  tab: {
     flex: 1,
-    minWidth: 0,
-    paddingVertical: 13,
-    fontSize: 14,
-    color: "#202923",
-  },
-  showPassword: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#07865A",
-    paddingLeft: 8,
-  },
-  forgotButton: {
-    alignSelf: "flex-end",
-    marginTop: -5,
-    marginBottom: 22,
-  },
-  forgotText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#07865A",
-  },
-  loginButton: {
-    minHeight: 51,
-    backgroundColor: "#07865A",
-    borderRadius: 10,
     alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: radius.sm,
   },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  dividerRow: {
+  tabActive: { backgroundColor: colors.primary },
+  tabText: { fontSize: 13, fontWeight: "700", color: colors.muted },
+  tabTextActive: { color: colors.white },
+  banner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginTop: 22,
-    marginBottom: 15,
+    gap: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 14,
   },
-  divider: {
+  bannerText: {
     flex: 1,
-    height: 1,
-    backgroundColor: "#E6EBE7",
-  },
-  orText: {
     fontSize: 12,
-    color: "#8A948E",
+    fontWeight: "600",
+    color: colors.danger,
   },
-  registerRow: {
+  success: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
     alignItems: "center",
-    marginTop: 25,
+    gap: 8,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 14,
   },
-  registerText: {
-    color: "#65716A",
-    fontSize: 13,
-  },
-  registerLink: {
-    color: "#07865A",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  footer: {
-    textAlign: "center",
-    marginTop: 20,
-    fontSize: 11,
-    color: "#929B95",
+  successText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
   },
 });

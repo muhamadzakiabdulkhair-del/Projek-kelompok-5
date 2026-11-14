@@ -20,13 +20,13 @@ import { ProductCard } from "@/components/product-card";
 import { SearchBar }   from "@/components/search-bar";
 import { tabsForRole } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
-import { useCart }     from "@/context/cart";
+import { useBelanja }  from "@/hooks/use-belanja";
 import { CATEGORIES, CATEGORY_IMAGES, type Product } from "@/data/products";
 import { fetchProducts } from "@/services/productService";
 
 export default function DashboardScreen() {
   const router    = useRouter();
-  const { add }   = useCart();
+  const { tambah, tampilkanTombol } = useBelanja();
 
   // ── Data dari Supabase ────────────────────────────────────────────────────
   const [products, setProducts] = useState<Product[]>([]);
@@ -153,7 +153,7 @@ export default function DashboardScreen() {
             product={item}
             style={styles.pickCard}
             onPress={() => openDetail(item)}
-            onAdd={() => add(item)}
+            onAdd={tampilkanTombol ? () => tambah(item) : undefined}
           />
         )}
       />
@@ -169,7 +169,7 @@ export default function DashboardScreen() {
         <BrandLogo />
         <Pressable
           style={styles.loginBtn}
-          onPress={() => router.push("/pelanggan/login")}
+          onPress={() => router.push("/login")}
           accessibilityLabel="Masuk"
         >
           <Ionicons name="person" size={18} color={colors.white} />
@@ -209,7 +209,7 @@ export default function DashboardScreen() {
             product={item}
             style={styles.gridCard}
             onPress={() => openDetail(item)}
-            onAdd={() => add(item)}
+            onAdd={tampilkanTombol ? () => tambah(item) : undefined}
           />
         )}
       />

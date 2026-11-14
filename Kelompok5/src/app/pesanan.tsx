@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useMemo, useState } from "react";
 import { Alert, FlatList, Platform, StyleSheet, Text, View } from "react-native";
@@ -9,7 +9,8 @@ import { BottomNav } from "@/components/bottom-nav";
 import { EmptyState } from "@/components/empty-state";
 import { FilterChips } from "@/components/filter-chips";
 import { ScreenHeader } from "@/components/screen-header";
-import { parseRole, tabsForRole } from "@/constants/navigation";
+import { tabsForRole } from "@/constants/navigation";
+import { useAuth } from "@/context/auth";
 import { colors, radius } from "@/constants/palette";
 import { useOrders } from "@/context/orders";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "@/data/orders";
@@ -26,10 +27,10 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
   Diproses: "Selesai",
 };
 
-// Dipakai pelanggan (riwayat pesanan) dan karyawan (pengelolaan pesanan) — dibedakan oleh param `role`.
+// Dipakai pelanggan (riwayat pesanan) dan karyawan (pengelolaan pesanan) — dibedakan oleh peran akun.
 export default function PesananScreen() {
-  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
-  const role = parseRole(roleParam);
+  const { profil } = useAuth();
+  const role = profil?.peran ?? "pelanggan";
   const isStaff = role !== "pelanggan";
 
   const { orders, loading, refresh, advanceStatus } = useOrders();

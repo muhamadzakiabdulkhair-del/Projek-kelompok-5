@@ -3,7 +3,6 @@ import {
   DefaultTheme,
   Stack,
   ThemeProvider,
-  useGlobalSearchParams,
   usePathname,
   useRouter,
   type Href,
@@ -16,45 +15,34 @@ import {
   View,
 } from "react-native";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
-import { LOGIN_HREF, parseRole, type Role } from "@/constants/navigation";
+import { BERANDA, LOGIN_HREF, type Role } from "@/constants/navigation";
 import { colors } from "@/constants/palette";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { CartProvider } from "@/context/cart";
 import { OrdersProvider } from "@/context/orders";
 
-// Beranda masing-masing peran (tujuan bila salah masuk halaman)
-const BERANDA: Record<Role, Href> = {
-  owner: "/admin/dashboard",
-  karyawan: "/kelola-produk?role=karyawan" as Href,
-  pelanggan: "/dashboard",
-};
-
-// Mengembalikan tujuan pengalihan, atau null bila halaman boleh dibuka
-function tentukanTujuan(
-  pathname: string,
-  peran: Role | null,
-  roleParam: Role,
-): Href | null {
+// Mengembalikan tujuan pengalihan, atau null bila halaman boleh dibuka.
+// Peran selalu diambil dari akun yang login (tabel profiles), bukan dari alamat halaman.
+function tentukanTujuan(pathname: string, peran: Role | null): Href | null {
   const p = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 
   const butuhOwner = p === "/admin/dashboard" || p === "/admin/laporan";
   const butuhStaf = p === "/kelola-produk";
   const butuhLogin = p === "/pesanan" || p === "/profil";
+  const butuhPelanggan = p === "/keranjang";
 
-  // Halaman umum (katalog, detail produk, keranjang, login): bebas dibuka
-  if (!butuhOwner && !butuhStaf && !butuhLogin) return null;
-
-  // Belum login: arahkan ke halaman login yang sesuai
+  // Belum login: halaman khusus akun diarahkan ke login, halaman umum bebas
   if (!peran) {
-    if (butuhOwner) return LOGIN_HREF.owner;
-    if (butuhStaf)
-      return LOGIN_HREF[roleParam === "owner" ? "owner" : "karyawan"];
-    return LOGIN_HREF[roleParam];
+    return butuhOwner || butuhStaf || butuhLogin || butuhPelanggan ? LOGIN_HREF : null;
   }
 
-  // Sudah login tetapi peran tidak cocok: kembalikan ke beranda perannya
+  // Sudah login: tidak perlu melihat halaman login lagi
+  if (p === "/login") return BERANDA[peran];
+
+  // Peran tidak cocok: kembalikan ke beranda perannya
   if (butuhOwner && peran !== "owner") return BERANDA[peran];
   if (butuhStaf && peran === "pelanggan") return BERANDA[peran];
+  if (butuhPelanggan && peran !== "pelanggan") return BERANDA[peran];
 
   return null;
 }
@@ -64,11 +52,8 @@ function PenjagaRute() {
   const { profil, memuat } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const { role } = useGlobalSearchParams<{ role?: string }>();
 
-  const tujuan = memuat
-    ? null
-    : tentukanTujuan(pathname, profil?.peran ?? null, parseRole(role));
+  const tujuan = memuat ? null : tentukanTujuan(pathname, profil?.peran ?? null);
 
   useEffect(() => {
     if (tujuan) router.replace(tujuan);
@@ -102,9 +87,7 @@ export default function RootLayout() {
               <Stack.Screen name="kelola-produk" />
               <Stack.Screen name="admin/dashboard" />
               <Stack.Screen name="admin/laporan" />
-              <Stack.Screen name="admin/login" />
-              <Stack.Screen name="karyawan/login" />
-              <Stack.Screen name="pelanggan/login" />
+              <Stack.Screen name="login" />
             </Stack>
             <PenjagaRute />
           </CartProvider>

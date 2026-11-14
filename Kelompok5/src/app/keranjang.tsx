@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/empty-state";
 import { QtyStepper } from "@/components/qty-stepper";
 import { ScreenHeader } from "@/components/screen-header";
 import { tabsForRole } from "@/constants/navigation";
+import { useAuth } from "@/context/auth";
 import { colors, font, radius, spacing } from "@/constants/palette";
 import { useCart, type CartLine } from "@/context/cart";
 import { useOrders } from "@/context/orders";
@@ -126,6 +127,7 @@ export default function KeranjangScreen() {
   const router = useRouter();
   const { lines, total, count, setQty, remove, clear } = useCart();
   const { addOrder } = useOrders();
+  const { profil } = useAuth();
   const [payment, setPayment] = useState<PaymentMethod>("TRANSFER_BANK");
   const [loading, setLoading] = useState(false);
 
@@ -147,7 +149,7 @@ export default function KeranjangScreen() {
     };
     return {
       id: invoiceId,
-      customer: "Saya",
+      customer: profil?.nama || profil?.email || "Pelanggan",
       date: tgl,
       items: itemsLabel,
       total: grandTotal,
