@@ -26,7 +26,11 @@ import { OrdersProvider } from "@/context/orders";
 function tentukanTujuan(pathname: string, peran: Role | null): Href | null {
   const p = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 
-  const butuhOwner = p === "/admin/dashboard" || p === "/admin/laporan";
+  const butuhOwner =
+    p === "/admin/dashboard" ||
+    p === "/admin/laporan" ||
+    p === "/admin/karyawan" ||
+    p === "/admin/pelanggan";
   const butuhStaf = p === "/kelola-produk";
   const butuhLogin = p === "/pesanan" || p === "/profil";
   const butuhPelanggan = p === "/keranjang";
@@ -87,6 +91,8 @@ export default function RootLayout() {
               <Stack.Screen name="kelola-produk" />
               <Stack.Screen name="admin/dashboard" />
               <Stack.Screen name="admin/laporan" />
+              <Stack.Screen name="admin/karyawan" />
+              <Stack.Screen name="admin/pelanggan" />
               <Stack.Screen name="login" />
             </Stack>
             <PenjagaRute />

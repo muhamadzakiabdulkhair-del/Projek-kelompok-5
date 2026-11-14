@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomNav } from "@/components/bottom-nav";
 import { BrandLogo } from "@/components/brand-logo";
 import { ScreenHeader } from "@/components/screen-header";
+import { UbahPasswordSheet } from "@/components/ubah-password-sheet";
 import {
   LOGIN_HREF,
   tabsForRole,
@@ -67,6 +69,7 @@ function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
 export default function ProfilScreen() {
   const router = useRouter();
   const { profil, keluar } = useAuth();
+  const [ubahPassword, setUbahPassword] = useState(false);
 
   // Peran diambil dari akun yang login, bukan dari alamat halaman
   const role: Role = profil?.peran ?? "pelanggan";
@@ -148,7 +151,11 @@ export default function ProfilScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pengaturan</Text>
           <MenuItem icon="create-outline" label="Edit Profil" />
-          <MenuItem icon="lock-closed-outline" label="Ubah Kata Sandi" />
+          <MenuItem
+            icon="lock-closed-outline"
+            label="Ubah Kata Sandi"
+            onPress={() => setUbahPassword(true)}
+          />
           <MenuItem icon="notifications-outline" label="Notifikasi" />
         </View>
 
@@ -180,6 +187,13 @@ export default function ProfilScreen() {
       </ScrollView>
 
       <BottomNav tabs={tabsForRole(role)} active="profil" />
+
+      {profil ? (
+        <UbahPasswordSheet
+          visible={ubahPassword}
+          onTutup={() => setUbahPassword(false)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

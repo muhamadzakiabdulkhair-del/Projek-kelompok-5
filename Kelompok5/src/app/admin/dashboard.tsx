@@ -486,6 +486,38 @@ export default function AdminDashboard() {
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── MENU KELOLA KARYAWAN ── */}
+        <TouchableOpacity
+          style={s.menuCard}
+          activeOpacity={0.8}
+          onPress={() => router.push("/admin/karyawan")}
+        >
+          <View style={s.menuIcon}>
+            <Ionicons name="people-outline" size={22} color={GREEN} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.menuTitle}>Kelola Karyawan</Text>
+            <Text style={s.menuDesc}>Daftarkan dan pantau akun karyawan</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </TouchableOpacity>
+
+                {/* ── MENU KELOLA PELANGGAN ── */}
+        <TouchableOpacity
+          style={s.menuCard}
+          activeOpacity={0.8}
+          onPress={() => router.push("/admin/pelanggan")}
+        >
+          <View style={s.menuIcon}>
+            <Ionicons name="person-outline" size={22} color={GREEN} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.menuTitle}>Kelola Pelanggan</Text>
+            <Text style={s.menuDesc}>Pantau akun, reset password, nonaktifkan</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </TouchableOpacity>
+
         {/* ── FILTER PERIODE ── */}
         <View style={s.filterBar}>
           <View style={{ flex: 1 }}>
@@ -697,6 +729,29 @@ const s = StyleSheet.create({
   logoutText: { color: GREEN, fontSize: 11, fontWeight: "700" },
 
   content: { padding: spacing.lg, paddingBottom: spacing.md },
+
+  // ── Menu kelola karyawan ──
+  menuCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginBottom: 14,
+  },
+  menuIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuTitle: { fontSize: 14, fontWeight: "800", color: DARK },
+  menuDesc: { fontSize: 11, color: colors.muted, marginTop: 1 },
 
   // ── Filter bar ──
   filterBar: {

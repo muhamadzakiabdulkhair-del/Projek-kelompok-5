@@ -107,6 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               message: "Email belum diverifikasi. Cek kotak masuk email kamu.",
             };
           }
+          // Akun yang dinonaktifkan owner (ban di Supabase Auth)
+          if (
+            error?.code === "user_banned" ||
+            error?.message?.toLowerCase().includes("banned")
+          ) {
+            return { ok: false, message: "Akun nonaktif. Hubungi owner." };
+          }
           // Pesan sengaja generik: tidak membocorkan apakah emailnya terdaftar.
           return { ok: false, message: "Email atau kata sandi salah." };
         }
