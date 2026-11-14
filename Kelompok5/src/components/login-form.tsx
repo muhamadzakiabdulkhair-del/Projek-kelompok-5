@@ -17,7 +17,7 @@ export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Satu form login untuk semua peran. Tujuan setelah login ditentukan oleh peran akun.
 export function LoginForm({ initialEmail = "" }: Props) {
   const router = useRouter();
-  const { masuk } = useAuth();
+  const { masuk, masukGoogle } = useAuth();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
@@ -41,6 +41,21 @@ export function LoginForm({ initialEmail = "" }: Props) {
       const hasil = await masuk(email.trim().toLowerCase(), password);
       if (hasil.ok) router.replace(BERANDA[hasil.peran]);
       else setFormError(hasil.message);
+    } catch {
+      setFormError("Tidak dapat terhubung. Periksa koneksi internet.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitGoogle() {
+    if (loading) return;
+    setFormError("");
+    setLoading(true);
+    try {
+      const hasil = await masukGoogle();
+      if (hasil.ok) router.replace(BERANDA[hasil.peran]);
+      else if (hasil.message) setFormError(hasil.message);
     } catch {
       setFormError("Tidak dapat terhubung. Periksa koneksi internet.");
     } finally {
@@ -88,6 +103,20 @@ export function LoginForm({ initialEmail = "" }: Props) {
         onPress={submit}
         loading={loading}
       />
+
+      <View style={styles.pemisah}>
+        <View style={styles.garis} />
+        <Text style={styles.pemisahText}>atau</Text>
+        <View style={styles.garis} />
+      </View>
+
+      <AppButton
+        label="Masuk dengan Google"
+        icon="logo-google"
+        variant="outline"
+        onPress={submitGoogle}
+        disabled={loading}
+      />
     </View>
   );
 }
@@ -115,4 +144,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.danger,
   },
+  pemisah: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 14,
+  },
+  garis: { flex: 1, height: 1, backgroundColor: colors.border },
+  pemisahText: { fontSize: 12, color: colors.muted },
 });
