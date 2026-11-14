@@ -8,9 +8,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Platform } from "react-native";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import type { Session } from "@supabase/supabase-js";
 import type { Role } from "@/constants/navigation";
 import { supabase } from "../../lib/supabase";
+
+WebBrowser.maybeCompleteAuthSession();
+
+// Alamat proxy Expo untuk login Google di Expo Go (HP/emulator)
+const PROXY_URL = "https://auth.expo.io/@anonymous/Proyek-kelompok-5";
 
 export type Profil = {
   id: string;
@@ -31,6 +39,7 @@ type AuthValue = {
   profil: Profil | null;
   memuat: boolean;
   masuk: (email: string, password: string) => Promise<HasilAuth>;
+  masukGoogle: () => Promise<HasilAuth>;
   daftar: (nama: string, email: string, password: string) => Promise<HasilAuth>;
   keluar: () => Promise<void>;
   muatUlangProfil: () => Promise<void>;
@@ -139,6 +148,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const masukGoogle = useCallback(async (): Promise<HasilAuth> => {
+    sedangMasuk.current = true;
+    try {
+      // ── Web: halaman dialihkan ke Google lalu kembali ke halaman ini ──
+      if (Platform.OS === "web") {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: window.location.origin + window.location.pathname,
+          },
+        });
+        if (error) {
+          return {
+            ok: false,
+            message: "Tidak dapat membuka Google. Coba lagi.",
+          };
+        }
+        // Halaman akan berpindah ke Google. Sesi diproses setelah kembali.
+        return { ok: false, message: "" };
+      }
+
+      // ── HP / Expo Go: lewat proxy Expo ──
+      const returnUrl = Linking.createURL("/");
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: PROXY_URL, skipBrowserRedirect: true },
+      });
+      if (error || !data.url) {
+        return { ok: false, message: "Tidak dapat membuka Google. Coba lagi." };
+      }
+
+      const startUrl = `${PROXY_URL}/start?${new URLSearchParams({
+        authUrl: data.url,
+        returnUrl,
+      }).toString()}`;
+
+      const hasilBrowser = await WebBrowser.openAuthSessionAsync(
+        startUrl,
+        returnUrl,
+      );
+      if (hasilBrowser.type !== "success" || !hasilBrowser.url) {
+        return { ok: false, message: "Login Google dibatalkan." };
+      }
+
+      const kode = new URL(hasilBrowser.url).searchParams.get("code");
+      if (!kode) {
+        return {
+          ok: false,
+          message: "Tidak ada kode otorisasi dari Google. Coba lagi.",
+        };
+      }
+
+      const { data: hasilTukar, error: errorTukar } =
+        await supabase.auth.exchangeCodeForSession(kode);
+      if (errorTukar || !hasilTukar.user) {
+        return { ok: false, message: "Gagal menukar kode Google. Coba lagi." };
+      }
+
+      const p = await ambilProfil(hasilTukar.user.id);
+      if (!p) {
+        await supabase.auth.signOut();
+        return {
+          ok: false,
+          message: "Profil akun tidak ditemukan. Hubungi owner.",
+        };
+      }
+      if (p.status === "Nonaktif") {
+        await supabase.auth.signOut();
+        return { ok: false, message: "Akun nonaktif. Hubungi owner." };
+      }
+      setProfil(p);
+      setMemuat(false);
+      return { ok: true, peran: p.peran };
+    } finally {
+      sedangMasuk.current = false;
+    }
+  }, []);
+
   const daftar = useCallback(
     async (
       nama: string,
@@ -186,8 +274,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user?.id]);
 
   const value = useMemo(
-    () => ({ session, profil, memuat, masuk, daftar, keluar, muatUlangProfil }),
-    [session, profil, memuat, masuk, daftar, keluar, muatUlangProfil],
+    () => ({
+      session,
+      profil,
+      memuat,
+      masuk,
+      masukGoogle,
+      daftar,
+      keluar,
+      muatUlangProfil,
+    }),
+    [
+      session,
+      profil,
+      memuat,
+      masuk,
+      masukGoogle,
+      daftar,
+      keluar,
+      muatUlangProfil,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
