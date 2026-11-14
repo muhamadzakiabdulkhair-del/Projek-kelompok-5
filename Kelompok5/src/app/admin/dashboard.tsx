@@ -14,24 +14,34 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BottomNav }        from "@/components/bottom-nav";
-import { BrandLogo }        from "@/components/brand-logo";
-import { DatePickerInput }  from "@/components/date-picker-input";
-import { tabsForRole }      from "@/constants/navigation";
+import { BottomNav } from "@/components/bottom-nav";
+import { BrandLogo } from "@/components/brand-logo";
+import { DatePickerInput } from "@/components/date-picker-input";
+import { tabsForRole } from "@/constants/navigation";
 import { colors, font, radius, spacing } from "@/constants/palette";
-import { type Product }     from "@/data/products";
-import { fetchProducts }    from "@/services/productService";
+import { type Product } from "@/data/products";
+import { fetchProducts } from "@/services/productService";
+import { useAuth } from "@/context/auth";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GREEN = colors.primary;
-const DARK  = colors.ink;
-const BG    = colors.bg;
+const DARK = colors.ink;
+const BG = colors.bg;
 
 const NAMA_BULAN = [
-  "Januari","Februari","Maret","April",
-  "Mei","Juni","Juli","Agustus",
-  "September","Oktober","November","Desember",
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
 ];
 
 /** Tahun tersedia: 2020 s/d tahun sekarang + 1 */
@@ -66,31 +76,75 @@ type DashboardData = {
 
 const statsData: Record<string, DashboardData> = {
   "2026-10": {
-    saldoKas: 2200000, omzet: 59000000, lababruto: 8000000,
-    biayaOperasional: 350000, volumeTerjual: 5000, piutang: 0,
-    grafik: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4800,200,0,0,0,0,0,0,0,0,0,0,0,0],
+    saldoKas: 2200000,
+    omzet: 59000000,
+    lababruto: 8000000,
+    biayaOperasional: 350000,
+    volumeTerjual: 5000,
+    piutang: 0,
+    grafik: [
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4800, 200, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+    ],
     produk: [
-      { name: "Uwell Caliburn G2", volume: 2000, omzet: 25000000, laba: 2000000 },
-      { name: "Vaporesso XROS 3",  volume: 2000, omzet: 24000000, laba: 4000000 },
-      { name: "Liquid Strawberry", volume: 1000, omzet: 10000000, laba: 2000000 },
+      {
+        name: "Uwell Caliburn G2",
+        volume: 2000,
+        omzet: 25000000,
+        laba: 2000000,
+      },
+      {
+        name: "Vaporesso XROS 3",
+        volume: 2000,
+        omzet: 24000000,
+        laba: 4000000,
+      },
+      {
+        name: "Liquid Strawberry",
+        volume: 1000,
+        omzet: 10000000,
+        laba: 2000000,
+      },
     ],
   },
   "2026-09": {
-    saldoKas: 1800000, omzet: 42000000, lababruto: 6500000,
-    biayaOperasional: 300000, volumeTerjual: 3800, piutang: 500000,
-    grafik: [0,0,0,0,100,0,0,0,0,0,0,200,0,0,0,0,0,1200,800,0,0,0,0,0,0,0,0,0,0,0,0],
+    saldoKas: 1800000,
+    omzet: 42000000,
+    lababruto: 6500000,
+    biayaOperasional: 300000,
+    volumeTerjual: 3800,
+    piutang: 500000,
+    grafik: [
+      0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 200, 0, 0, 0, 0, 0, 1200, 800, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ],
     produk: [
-      { name: "Uwell Caliburn G2", volume: 1500, omzet: 18000000, laba: 1500000 },
-      { name: "Vaporesso XROS 3",  volume: 1500, omzet: 16000000, laba: 3000000 },
-      { name: "Coil Replacement",  volume: 800,  omzet: 8000000,  laba: 2000000 },
+      {
+        name: "Uwell Caliburn G2",
+        volume: 1500,
+        omzet: 18000000,
+        laba: 1500000,
+      },
+      {
+        name: "Vaporesso XROS 3",
+        volume: 1500,
+        omzet: 16000000,
+        laba: 3000000,
+      },
+      { name: "Coil Replacement", volume: 800, omzet: 8000000, laba: 2000000 },
     ],
   },
 };
 
 const emptyData: DashboardData = {
-  saldoKas: 0, omzet: 0, lababruto: 0,
-  biayaOperasional: 0, volumeTerjual: 0, piutang: 0,
-  grafik: [], produk: [],
+  saldoKas: 0,
+  omzet: 0,
+  lababruto: 0,
+  biayaOperasional: 0,
+  volumeTerjual: 0,
+  piutang: 0,
+  grafik: [],
+  produk: [],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -135,7 +189,9 @@ function Dropdown({ label, value, options, onSelect }: DropdownProps) {
           onPress={() => setOpen(true)}
           activeOpacity={0.75}
         >
-          <Text style={dd.btnText} numberOfLines={1}>{value}</Text>
+          <Text style={dd.btnText} numberOfLines={1}>
+            {value}
+          </Text>
           <Ionicons name="chevron-down" size={14} color={colors.muted} />
         </TouchableOpacity>
       </View>
@@ -156,12 +212,19 @@ function Dropdown({ label, value, options, onSelect }: DropdownProps) {
                   <TouchableOpacity
                     key={opt.value}
                     style={[dd.option, active && dd.optionActive]}
-                    onPress={() => { onSelect(opt.value); setOpen(false); }}
+                    onPress={() => {
+                      onSelect(opt.value);
+                      setOpen(false);
+                    }}
                   >
-                    <Text style={[dd.optionText, active && dd.optionTextActive]}>
+                    <Text
+                      style={[dd.optionText, active && dd.optionTextActive]}
+                    >
                       {opt.label}
                     </Text>
-                    {active && <Ionicons name="checkmark" size={16} color={GREEN} />}
+                    {active && (
+                      <Ionicons name="checkmark" size={16} color={GREEN} />
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -175,7 +238,12 @@ function Dropdown({ label, value, options, onSelect }: DropdownProps) {
 
 const dd = StyleSheet.create({
   wrap: { flex: 1 },
-  label: { fontSize: 10, fontWeight: "700", color: colors.muted, marginBottom: 5 },
+  label: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.muted,
+    marginBottom: 5,
+  },
   btn: {
     flexDirection: "row",
     alignItems: "center",
@@ -221,7 +289,10 @@ const dd = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  optionActive: { backgroundColor: colors.primarySoft, borderRadius: radius.sm },
+  optionActive: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.sm,
+  },
   optionText: { fontSize: 13, color: DARK },
   optionTextActive: { fontWeight: "800", color: GREEN },
 });
@@ -240,7 +311,10 @@ function BarChart({ data, days }: { data: number[]; days: number }) {
               <View
                 style={[
                   chart.bar,
-                  { height: Math.max(2, (value / max) * 80), backgroundColor: value > 0 ? GREEN : "#D8E8DE" },
+                  {
+                    height: Math.max(2, (value / max) * 80),
+                    backgroundColor: value > 0 ? GREEN : "#D8E8DE",
+                  },
                 ]}
               />
             </View>
@@ -250,7 +324,11 @@ function BarChart({ data, days }: { data: number[]; days: number }) {
       <View style={chart.axis}>
         {[1, 5, 10, 15, 20, 25, days]
           .filter((d, i, arr) => arr.indexOf(d) === i)
-          .map((d) => <Text key={d} style={chart.axisLabel}>{d}</Text>)}
+          .map((d) => (
+            <Text key={d} style={chart.axisLabel}>
+              {d}
+            </Text>
+          ))}
       </View>
       <Text style={chart.axisTitle}>Tanggal</Text>
     </View>
@@ -260,22 +338,33 @@ function BarChart({ data, days }: { data: number[]; days: number }) {
 const chart = StyleSheet.create({
   wrap: { paddingTop: 8 },
   bars: { flexDirection: "row", alignItems: "flex-end", height: 88, gap: 1 },
-  col:  { flex: 1, alignItems: "center", justifyContent: "flex-end", height: 88 },
-  bar:  { width: "80%", borderRadius: 3 },
+  col: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    height: 88,
+  },
+  bar: { width: "80%", borderRadius: 3 },
   axis: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
   axisLabel: { fontSize: 9, color: "#7A9E8A" },
-  axisTitle: { textAlign: "center", fontSize: 10, color: "#7A9E8A", marginTop: 4 },
+  axisTitle: {
+    textAlign: "center",
+    fontSize: 10,
+    color: "#7A9E8A",
+    marginTop: 4,
+  },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const today  = new Date();
+  const { keluar } = useAuth();
+  const today = new Date();
 
   // ── Data stok realtime dari Supabase ──────────────────────────────────────
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
-  const [loadingDb,  setLoadingDb]  = useState(true);
+  const [loadingDb, setLoadingDb] = useState(true);
 
   useEffect(() => {
     fetchProducts()
@@ -285,41 +374,89 @@ export default function AdminDashboard() {
   }, []);
 
   // Statistik stok dihitung dari Supabase
-  const aktif      = dbProducts.filter((p) => p.isActive !== false);
-  const stokHabis  = aktif.filter((p) => p.stock <= 0).length;
-  const stokMenipis= aktif.filter((p) => p.stock > 0 && p.stock <= 5).length;
-  const stokAman   = aktif.filter((p) => p.stock > 5).length;
-  const nilaiStok  = aktif.reduce((s, p) => s + p.price * p.stock, 0);
-  const modalStok  = aktif.reduce((s, p) => s + p.purchasePrice * p.stock, 0);
-  const potensiLaba= nilaiStok - modalStok;
+  const aktif = dbProducts.filter((p) => p.isActive !== false);
+  const stokHabis = aktif.filter((p) => p.stock <= 0).length;
+  const stokMenipis = aktif.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const stokAman = aktif.filter((p) => p.stock > 5).length;
+  const nilaiStok = aktif.reduce((s, p) => s + p.price * p.stock, 0);
+  const modalStok = aktif.reduce((s, p) => s + p.purchasePrice * p.stock, 0);
+  const potensiLaba = nilaiStok - modalStok;
 
   // Periode aktif: "YYYY-MM-DD" format tapi kita cuma pakai year+month
   // Simpan sebagai "YYYY-MM-01" supaya bisa pakai DatePickerInput
-  const initDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,"0")}-01`;
+  const initDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
   const [pickedDate, setPickedDate] = useState<string | null>(initDate);
 
   // Derive period key dari pickedDate
   const activePeriod = pickedDate
-    ? getPeriodKey(Number(pickedDate.split("-")[1]), Number(pickedDate.split("-")[0]))
+    ? getPeriodKey(
+        Number(pickedDate.split("-")[1]),
+        Number(pickedDate.split("-")[0]),
+      )
     : getPeriodKey(today.getMonth() + 1, today.getFullYear());
 
-  const data    = statsData[activePeriod] ?? emptyData;
+  const data = statsData[activePeriod] ?? emptyData;
   const hasData = Boolean(statsData[activePeriod]);
-  const days    = getJumlahHari(activePeriod);
+  const days = getJumlahHari(activePeriod);
 
   type StatCard = {
-    label: string; value: string;
+    label: string;
+    value: string;
     icon: keyof typeof Ionicons.glyphMap;
-    bg: string; iconBg: string; iconColor: string;
+    bg: string;
+    iconBg: string;
+    iconColor: string;
   };
 
   const statCards: StatCard[] = [
-    { label: "Saldo Kas Brangkas",        value: rupiah(data.saldoKas),       icon: "wallet-outline",      bg: "#E8F5EE", iconBg: "#C2E8D2", iconColor: GREEN },
-    { label: "Omzet Penjualan Bulan Ini", value: rupiah(data.omzet),          icon: "trending-up-outline", bg: "#EAF3FF", iconBg: "#BDD8FA", iconColor: "#1D5FB8" },
-    { label: "Laba Bruto Bulan Ini",      value: rupiah(data.lababruto),      icon: "bar-chart-outline",   bg: "#EEF9F2", iconBg: "#B8E8CA", iconColor: GREEN },
-    { label: "Biaya Operasional",         value: rupiah(data.biayaOperasional), icon: "receipt-outline",   bg: "#FDFBEE", iconBg: "#F0E8A0", iconColor: colors.warning },
-    { label: "Volume Terjual Bulan Ini",  value: `${data.volumeTerjual.toLocaleString("id-ID")} unit`, icon: "cube-outline", bg: "#F0EEF9", iconBg: "#D4C8F0", iconColor: "#7B5EA7" },
-    { label: "Piutang Belum Lunas",       value: rupiah(data.piutang),        icon: "people-outline",      bg: "#FFF0F0", iconBg: "#FAD0D0", iconColor: colors.danger },
+    {
+      label: "Saldo Kas Brangkas",
+      value: rupiah(data.saldoKas),
+      icon: "wallet-outline",
+      bg: "#E8F5EE",
+      iconBg: "#C2E8D2",
+      iconColor: GREEN,
+    },
+    {
+      label: "Omzet Penjualan Bulan Ini",
+      value: rupiah(data.omzet),
+      icon: "trending-up-outline",
+      bg: "#EAF3FF",
+      iconBg: "#BDD8FA",
+      iconColor: "#1D5FB8",
+    },
+    {
+      label: "Laba Bruto Bulan Ini",
+      value: rupiah(data.lababruto),
+      icon: "bar-chart-outline",
+      bg: "#EEF9F2",
+      iconBg: "#B8E8CA",
+      iconColor: GREEN,
+    },
+    {
+      label: "Biaya Operasional",
+      value: rupiah(data.biayaOperasional),
+      icon: "receipt-outline",
+      bg: "#FDFBEE",
+      iconBg: "#F0E8A0",
+      iconColor: colors.warning,
+    },
+    {
+      label: "Volume Terjual Bulan Ini",
+      value: `${data.volumeTerjual.toLocaleString("id-ID")} unit`,
+      icon: "cube-outline",
+      bg: "#F0EEF9",
+      iconBg: "#D4C8F0",
+      iconColor: "#7B5EA7",
+    },
+    {
+      label: "Piutang Belum Lunas",
+      value: rupiah(data.piutang),
+      icon: "people-outline",
+      bg: "#FFF0F0",
+      iconBg: "#FAD0D0",
+      iconColor: colors.danger,
+    },
   ];
 
   return (
@@ -333,14 +470,22 @@ export default function AdminDashboard() {
           <View style={s.avatarBox}>
             <Text style={s.avatarText}>A</Text>
           </View>
-          <TouchableOpacity style={s.logoutBtn} onPress={() => router.replace("/admin/login")}>
+          <TouchableOpacity
+            style={s.logoutBtn}
+            onPress={async () => {
+              await keluar();
+              router.replace("/admin/login");
+            }}
+          >
             <Text style={s.logoutText}>Keluar</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── FILTER PERIODE ── */}
         <View style={s.filterBar}>
           <View style={{ flex: 1 }}>
@@ -356,7 +501,9 @@ export default function AdminDashboard() {
         {/* Badge periode aktif */}
         <View style={s.periodBadge}>
           <Text style={s.periodBadgeText}>
-            {hasData ? `📊 ${getBulanLabel(activePeriod)}` : `Tidak ada data · ${getBulanLabel(activePeriod)}`}
+            {hasData
+              ? `📊 ${getBulanLabel(activePeriod)}`
+              : `Tidak ada data · ${getBulanLabel(activePeriod)}`}
           </Text>
         </View>
 
@@ -364,7 +511,13 @@ export default function AdminDashboard() {
         <View style={s.stokSectionHeader}>
           <Ionicons name="cube-outline" size={16} color={GREEN} />
           <Text style={s.sectionTitle}>Statistik Stok Saat Ini</Text>
-          {loadingDb && <ActivityIndicator size="small" color={GREEN} style={{ marginLeft: 6 }} />}
+          {loadingDb && (
+            <ActivityIndicator
+              size="small"
+              color={GREEN}
+              style={{ marginLeft: 6 }}
+            />
+          )}
         </View>
 
         {/* 3 kartu status stok */}
@@ -376,12 +529,16 @@ export default function AdminDashboard() {
           </View>
           <View style={[s.stokCard, { backgroundColor: colors.warningSoft }]}>
             <Ionicons name="warning" size={20} color={colors.warning} />
-            <Text style={[s.stokNum, { color: colors.warning }]}>{stokMenipis}</Text>
+            <Text style={[s.stokNum, { color: colors.warning }]}>
+              {stokMenipis}
+            </Text>
             <Text style={s.stokLabel}>Menipis</Text>
           </View>
           <View style={[s.stokCard, { backgroundColor: colors.dangerSoft }]}>
             <Ionicons name="close-circle" size={20} color={colors.danger} />
-            <Text style={[s.stokNum, { color: colors.danger }]}>{stokHabis}</Text>
+            <Text style={[s.stokNum, { color: colors.danger }]}>
+              {stokHabis}
+            </Text>
             <Text style={s.stokLabel}>Habis</Text>
           </View>
         </View>
@@ -390,15 +547,21 @@ export default function AdminDashboard() {
         <View style={s.stokRow}>
           <View style={[s.stokFinCard, { backgroundColor: "#EAF3FF" }]}>
             <Text style={s.stokFinLabel}>Nilai Stok</Text>
-            <Text style={[s.stokFinValue, { color: "#1D5FB8" }]}>{rupiah(nilaiStok)}</Text>
+            <Text style={[s.stokFinValue, { color: "#1D5FB8" }]}>
+              {rupiah(nilaiStok)}
+            </Text>
           </View>
           <View style={[s.stokFinCard, { backgroundColor: "#FFF0F0" }]}>
             <Text style={s.stokFinLabel}>Modal Stok</Text>
-            <Text style={[s.stokFinValue, { color: colors.danger }]}>{rupiah(modalStok)}</Text>
+            <Text style={[s.stokFinValue, { color: colors.danger }]}>
+              {rupiah(modalStok)}
+            </Text>
           </View>
           <View style={[s.stokFinCard, { backgroundColor: "#EEF9F2" }]}>
             <Text style={s.stokFinLabel}>Potensi Laba</Text>
-            <Text style={[s.stokFinValue, { color: GREEN }]}>{rupiah(potensiLaba)}</Text>
+            <Text style={[s.stokFinValue, { color: GREEN }]}>
+              {rupiah(potensiLaba)}
+            </Text>
           </View>
         </View>
 
@@ -408,7 +571,9 @@ export default function AdminDashboard() {
         {/* ── KARTU STATISTIK PENJUALAN (dummy) ── */}
         <View style={[s.stokSectionHeader, { marginBottom: 10 }]}>
           <Ionicons name="trending-up-outline" size={16} color={GREEN} />
-          <Text style={s.sectionTitle}>Statistik Penjualan · {getBulanLabel(activePeriod)}</Text>
+          <Text style={s.sectionTitle}>
+            Statistik Penjualan · {getBulanLabel(activePeriod)}
+          </Text>
         </View>
         <View style={s.grid}>
           {statCards.map((c) => (
@@ -439,7 +604,9 @@ export default function AdminDashboard() {
           ) : (
             <View style={s.emptyChart}>
               <Ionicons name="bar-chart-outline" size={30} color="#A8BDB0" />
-              <Text style={s.emptyText}>Belum ada data penjualan pada periode ini.</Text>
+              <Text style={s.emptyText}>
+                Belum ada data penjualan pada periode ini.
+              </Text>
             </View>
           )}
         </View>
@@ -459,22 +626,36 @@ export default function AdminDashboard() {
                 <Text style={[s.cell, s.cellNum, s.headText]}>LABA</Text>
               </View>
               {data.produk.map((p, i) => (
-                <View key={p.name} style={[s.tableRow, i % 2 === 1 && s.tableAlt]}>
-                  <Text style={[s.cell, s.cellWide]} numberOfLines={1}>{p.name}</Text>
-                  <Text style={[s.cell, s.cellNum]}>{p.volume.toLocaleString("id-ID")}</Text>
+                <View
+                  key={p.name}
+                  style={[s.tableRow, i % 2 === 1 && s.tableAlt]}
+                >
+                  <Text style={[s.cell, s.cellWide]} numberOfLines={1}>
+                    {p.name}
+                  </Text>
+                  <Text style={[s.cell, s.cellNum]}>
+                    {p.volume.toLocaleString("id-ID")}
+                  </Text>
                   <Text style={[s.cell, s.cellNum]}>{rupiah(p.omzet)}</Text>
-                  <Text style={[s.cell, s.cellNum, s.bold]}>{rupiah(p.laba)}</Text>
+                  <Text style={[s.cell, s.cellNum, s.bold]}>
+                    {rupiah(p.laba)}
+                  </Text>
                 </View>
               ))}
             </View>
           ) : (
             <View style={s.emptyTable}>
-              <Ionicons name="document-text-outline" size={28} color="#A8BDB0" />
-              <Text style={s.emptyText}>Belum ada ringkasan produk untuk periode ini.</Text>
+              <Ionicons
+                name="document-text-outline"
+                size={28}
+                color="#A8BDB0"
+              />
+              <Text style={s.emptyText}>
+                Belum ada ringkasan produk untuk periode ini.
+              </Text>
             </View>
           )}
         </View>
-
       </ScrollView>
 
       <BottomNav tabs={tabsForRole("owner")} active="dashboard" />
@@ -499,13 +680,19 @@ const s = StyleSheet.create({
   },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   avatarBox: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: GREEN, alignItems: "center", justifyContent: "center",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: GREEN,
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarText: { color: colors.white, fontWeight: "800", fontSize: 15 },
   logoutBtn: {
-    backgroundColor: colors.primarySoft, borderRadius: radius.sm,
-    paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   logoutText: { color: GREEN, fontSize: 11, fontWeight: "700" },
 
@@ -540,64 +727,126 @@ const s = StyleSheet.create({
 
   // ── Stat grid ──
   grid: {
-    flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 14,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14,
   },
 
   // ── Stok realtime ──
   stokSectionHeader: {
-    flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
   },
   stokRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
   stokCard: {
-    flex: 1, borderRadius: radius.md, padding: 12,
-    alignItems: "center", gap: 4,
-    borderWidth: 1, borderColor: colors.border,
+    flex: 1,
+    borderRadius: radius.md,
+    padding: 12,
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  stokNum:   { fontSize: 22, fontWeight: "900" },
-  stokLabel: { fontSize: 10, color: colors.muted, fontWeight: "600", textAlign: "center" },
+  stokNum: { fontSize: 22, fontWeight: "900" },
+  stokLabel: {
+    fontSize: 10,
+    color: colors.muted,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   stokFinCard: {
-    flex: 1, borderRadius: radius.md, padding: 10,
-    borderWidth: 1, borderColor: colors.border,
+    flex: 1,
+    borderRadius: radius.md,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   stokFinLabel: { fontSize: 10, color: colors.muted, fontWeight: "600" },
   stokFinValue: { fontSize: 13, fontWeight: "900", marginTop: 2 },
   divider: {
-    height: 1, backgroundColor: colors.border, marginVertical: 14,
-  },  statCard: {
-    width: "48%" as any, flexGrow: 1, flexBasis: 140,
-    borderRadius: radius.lg, padding: 14, gap: 8,
-    borderWidth: 1, borderColor: "rgba(0,0,0,0.04)",
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 14,
+  },
+  statCard: {
+    width: "48%" as any,
+    flexGrow: 1,
+    flexBasis: 140,
+    borderRadius: radius.lg,
+    padding: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.04)",
   },
   statIconBox: {
-    width: 46, height: 46, borderRadius: 13,
-    alignItems: "center", justifyContent: "center",
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statValue: { fontSize: 16, fontWeight: "800", color: DARK },
   statLabel: { fontSize: 10, color: colors.muted, lineHeight: 14 },
 
   // ── Sections ──
   section: {
-    backgroundColor: colors.surface, borderRadius: radius.lg,
-    padding: 14, marginBottom: 14,
-    borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
-  sectionTitle:  { fontSize: 14, fontWeight: "800", color: DARK, flex: 1 },
-  legendRow:     { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  legendDot:     { width: 10, height: 10, borderRadius: 5 },
-  legendText:    { fontSize: 11, color: colors.muted },
-  emptyChart:    { minHeight: 110, alignItems: "center", justifyContent: "center", gap: 8 },
-  emptyTable:    { minHeight: 100, alignItems: "center", justifyContent: "center", gap: 8 },
-  emptyText:     { fontSize: 11, color: colors.muted, textAlign: "center" },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  sectionTitle: { fontSize: 14, fontWeight: "800", color: DARK, flex: 1 },
+  legendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 11, color: colors.muted },
+  emptyChart: {
+    minHeight: 110,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyTable: {
+    minHeight: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyText: { fontSize: 11, color: colors.muted, textAlign: "center" },
 
   // ── Table ──
-  table:    { borderRadius: radius.sm, overflow: "hidden", borderWidth: 1, borderColor: colors.border },
-  tableRow: { flexDirection: "row", paddingVertical: 10, paddingHorizontal: 10, alignItems: "center" },
-  tableHead:{ backgroundColor: colors.primarySoft },
+  table: {
+    borderRadius: radius.sm,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    alignItems: "center",
+  },
+  tableHead: { backgroundColor: colors.primarySoft },
   tableAlt: { backgroundColor: colors.tint },
   headText: { fontWeight: "800", color: GREEN, fontSize: 10 },
-  cell:     { fontSize: 11, color: DARK },
+  cell: { fontSize: 11, color: DARK },
   cellWide: { flex: 2 },
-  cellNum:  { flex: 1, textAlign: "right" },
-  bold:     { fontWeight: "800" },
+  cellNum: { flex: 1, textAlign: "right" },
+  bold: { fontWeight: "800" },
 });

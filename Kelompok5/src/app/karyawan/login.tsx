@@ -8,7 +8,6 @@ export default function KaryawanLoginScreen() {
       <LoginForm
         role="karyawan"
         redirectTo={"/kelola-produk?role=karyawan" as Href}
-        hint="karyawan@vapestore.com  ·  karyawan123"
       />
     </AuthLayout>
   );

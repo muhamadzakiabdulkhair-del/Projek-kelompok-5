@@ -6,29 +6,29 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomNav } from "@/components/bottom-nav";
 import { BrandLogo } from "@/components/brand-logo";
 import { ScreenHeader } from "@/components/screen-header";
-import { parseRole, tabsForRole, type Role } from "@/constants/navigation";
+import {
+  LOGIN_HREF,
+  parseRole,
+  tabsForRole,
+  type Role,
+} from "@/constants/navigation";
 import { colors, font, radius, spacing } from "@/constants/palette";
+import { useAuth } from "@/context/auth";
 
-// Data profil dummy per role (UTS: tidak perlu backend)
-const PROFILES: Record<Role, { name: string; email: string; phone: string; role: string }> = {
-  pelanggan: {
-    name: "Budi Santoso",
-    email: "budi@email.com",
-    phone: "0812-3456-7890",
-    role: "Pelanggan",
-  },
-  owner: {
-    name: "Admin Owner",
-    email: "owner@vapestore.id",
-    phone: "0811-0000-0001",
-    role: "Owner",
-  },
-  karyawan: {
-    name: "Karyawan Toko",
-    email: "karyawan@vapestore.id",
-    phone: "0811-0000-0002",
-    role: "Karyawan",
-  },
+const LABEL_PERAN: Record<Role, string> = {
+  pelanggan: "Pelanggan",
+  owner: "Owner",
+  karyawan: "Karyawan",
+};
+
+// Data cadangan, dipakai hanya bila belum ada akun yang login
+const PROFIL_CADANGAN: Record<
+  Role,
+  { name: string; email: string; phone: string }
+> = {
+  pelanggan: { name: "Tamu", email: "-", phone: "-" },
+  owner: { name: "Tamu", email: "-", phone: "-" },
+  karyawan: { name: "Tamu", email: "-", phone: "-" },
 };
 
 type MenuItemProps = {
@@ -41,36 +41,57 @@ type MenuItemProps = {
 function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+      style={({ pressed }) => [
+        styles.menuItem,
+        pressed && styles.menuItemPressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
     >
       <View style={[styles.menuIcon, danger && styles.menuIconDanger]}>
-        <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.primary} />
+        <Ionicons
+          name={icon}
+          size={18}
+          color={danger ? colors.danger : colors.primary}
+        />
       </View>
-      <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>{label}</Text>
-      {!danger && <Ionicons name="chevron-forward" size={16} color={colors.placeholder} />}
+      <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>
+        {label}
+      </Text>
+      {!danger && (
+        <Ionicons name="chevron-forward" size={16} color={colors.placeholder} />
+      )}
     </Pressable>
   );
 }
 
 export default function ProfilScreen() {
   const router = useRouter();
+  const { profil, keluar } = useAuth();
   const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
-  const role = parseRole(roleParam);
-  const profile = PROFILES[role];
+
+  // Peran diambil dari akun yang login, bukan dari alamat halaman
+  const role: Role = profil?.peran ?? parseRole(roleParam);
+  const profile = profil
+    ? {
+        name: profil.nama || profil.email,
+        email: profil.email,
+        phone: profil.phone ?? "-",
+        role: LABEL_PERAN[role],
+      }
+    : { ...PROFIL_CADANGAN[role], role: LABEL_PERAN[role] };
 
   const initials = profile.name
     .split(" ")
+    .filter(Boolean)
     .map((w) => w[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
 
-  const handleLogout = () => {
-    if (role === "owner") router.replace("/admin/login");
-    else if (role === "karyawan") router.replace("/karyawan/login");
-    else router.replace("/pelanggan/login");
+  const handleLogout = async () => {
+    await keluar();
+    router.replace(LOGIN_HREF[role]);
   };
 
   return (
@@ -78,7 +99,10 @@ export default function ProfilScreen() {
       <StatusBar style="dark" />
       <ScreenHeader title="Profil" />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Avatar & info utama */}
         <View style={styles.heroCard}>
           <View style={styles.avatar}>
@@ -94,9 +118,21 @@ export default function ProfilScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Informasi Akun</Text>
           {[
-            { icon: "person-outline" as const, label: "Nama", value: profile.name },
-            { icon: "mail-outline" as const, label: "Email", value: profile.email },
-            { icon: "call-outline" as const, label: "Telepon", value: profile.phone },
+            {
+              icon: "person-outline" as const,
+              label: "Nama",
+              value: profile.name,
+            },
+            {
+              icon: "mail-outline" as const,
+              label: "Email",
+              value: profile.email,
+            },
+            {
+              icon: "call-outline" as const,
+              label: "Telepon",
+              value: profile.phone,
+            },
           ].map((item) => (
             <View key={item.label} style={styles.infoRow}>
               <View style={styles.infoIcon}>
@@ -121,13 +157,21 @@ export default function ProfilScreen() {
         {/* Tentang */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tentang Aplikasi</Text>
-          <MenuItem icon="information-circle-outline" label="Tentang VapeStore" />
+          <MenuItem
+            icon="information-circle-outline"
+            label="Tentang VapeStore"
+          />
           <MenuItem icon="document-text-outline" label="Syarat & Ketentuan" />
         </View>
 
         {/* Logout */}
         <View style={styles.section}>
-          <MenuItem icon="log-out-outline" label="Keluar" onPress={handleLogout} danger />
+          <MenuItem
+            icon="log-out-outline"
+            label="Keluar"
+            onPress={handleLogout}
+            danger
+          />
         </View>
 
         {/* Branding */}
@@ -144,7 +188,11 @@ export default function ProfilScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, paddingBottom: spacing.xl + 8, gap: spacing.lg },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xl + 8,
+    gap: spacing.lg,
+  },
 
   // Hero card
   heroCard: {
@@ -232,7 +280,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   menuIconDanger: { backgroundColor: colors.dangerSoft },
-  menuLabel: { flex: 1, fontSize: font.body, fontWeight: "600", color: colors.ink },
+  menuLabel: {
+    flex: 1,
+    fontSize: font.body,
+    fontWeight: "600",
+    color: colors.ink,
+  },
   menuLabelDanger: { color: colors.danger },
 
   // Brand

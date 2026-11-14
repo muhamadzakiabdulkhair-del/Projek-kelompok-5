@@ -6,14 +6,21 @@ import { AppInput } from "@/components/app-input";
 import { AuthLayout } from "@/components/auth-layout";
 import { EMAIL_REGEX, LoginForm } from "@/components/login-form";
 import { colors, radius } from "@/constants/palette";
-import { mockRegister } from "@/mock/auth";
+import { useAuth } from "@/context/auth";
 
 type Tab = "login" | "register";
-type RegErrors = { name?: string; email?: string; password?: string; confirm?: string };
+type RegErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirm?: string;
+};
 
 export default function PelangganLoginScreen() {
+  const { daftar } = useAuth();
   const [tab, setTab] = useState<Tab>("login");
   const [justRegistered, setJustRegistered] = useState("");
+  const [pesanSukses, setPesanSukses] = useState("");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,12 +28,14 @@ export default function PelangganLoginScreen() {
   const [confirm, setConfirm] = useState("");
   const [errors, setErrors] = useState<RegErrors>({});
   const [formError, setFormError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function register() {
+  async function register() {
     const e: RegErrors = {};
     if (!name.trim()) e.name = "Nama lengkap wajib diisi.";
     if (!email.trim()) e.email = "Email wajib diisi.";
-    else if (!EMAIL_REGEX.test(email.trim())) e.email = "Format email belum benar.";
+    else if (!EMAIL_REGEX.test(email.trim()))
+      e.email = "Format email belum benar.";
     if (!password) e.password = "Kata sandi wajib diisi.";
     else if (password.length < 8) e.password = "Minimal 8 karakter.";
     if (confirm !== password) e.confirm = "Konfirmasi kata sandi tidak cocok.";
@@ -34,19 +43,30 @@ export default function PelangganLoginScreen() {
     setFormError("");
     if (Object.keys(e).length > 0) return;
 
-    const result = mockRegister({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password,
-      role: "pelanggan",
-    });
-    if (result.ok) {
-      setJustRegistered(email.trim().toLowerCase());
-      setPassword("");
-      setConfirm("");
-      setTab("login");
-    } else {
-      setFormError(result.message);
+    setLoading(true);
+    try {
+      const hasil = await daftar(
+        name.trim(),
+        email.trim().toLowerCase(),
+        password,
+      );
+      if (hasil.ok) {
+        setJustRegistered(email.trim().toLowerCase());
+        setPesanSukses(
+          hasil.perluVerifikasi
+            ? "Pendaftaran berhasil. Cek email kamu dan klik tautan verifikasi, lalu masuk."
+            : "Pendaftaran berhasil. Silakan masuk.",
+        );
+        setPassword("");
+        setConfirm("");
+        setTab("login");
+      } else {
+        setFormError(hasil.message);
+      }
+    } catch {
+      setFormError("Tidak dapat terhubung. Periksa koneksi internet.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -54,8 +74,14 @@ export default function PelangganLoginScreen() {
     <AuthLayout current="pelanggan">
       <View style={styles.tabs}>
         {(["login", "register"] as Tab[]).map((t) => (
-          <Pressable key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
-            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t === "login" ? "Masuk" : "Daftar"}</Text>
+          <Pressable
+            key={t}
+            style={[styles.tab, tab === t && styles.tabActive]}
+            onPress={() => setTab(t)}
+          >
+            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
+              {t === "login" ? "Masuk" : "Daftar"}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -64,11 +90,20 @@ export default function PelangganLoginScreen() {
         <View>
           {justRegistered ? (
             <View style={styles.success}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-              <Text style={styles.successText}>Pendaftaran berhasil. Silakan masuk.</Text>
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={colors.primary}
+              />
+              <Text style={styles.successText}>{pesanSukses}</Text>
             </View>
           ) : null}
-          <LoginForm key={justRegistered} role="pelanggan" redirectTo="/dashboard" initialEmail={justRegistered} />
+          <LoginForm
+            key={justRegistered}
+            role="pelanggan"
+            redirectTo="/dashboard"
+            initialEmail={justRegistered}
+          />
         </View>
       ) : (
         <View>
@@ -78,11 +113,51 @@ export default function PelangganLoginScreen() {
               <Text style={styles.bannerText}>{formError}</Text>
             </View>
           ) : null}
-          <AppInput label="Nama lengkap" icon="person-outline" placeholder="Nama kamu" value={name} onChangeText={setName} autoCapitalize="words" error={errors.name} />
-          <AppInput label="Email" icon="mail-outline" placeholder="nama@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" error={errors.email} />
-          <AppInput label="Kata sandi" icon="lock-closed-outline" placeholder="Minimal 8 karakter" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" error={errors.password} />
-          <AppInput label="Konfirmasi kata sandi" icon="lock-closed-outline" placeholder="Ulangi kata sandi" value={confirm} onChangeText={setConfirm} secureTextEntry autoCapitalize="none" error={errors.confirm} />
-          <AppButton label="Daftar" icon="person-add-outline" onPress={register} />
+          <AppInput
+            label="Nama lengkap"
+            icon="person-outline"
+            placeholder="Nama kamu"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            error={errors.name}
+          />
+          <AppInput
+            label="Email"
+            icon="mail-outline"
+            placeholder="nama@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={errors.email}
+          />
+          <AppInput
+            label="Kata sandi"
+            icon="lock-closed-outline"
+            placeholder="Minimal 8 karakter"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            error={errors.password}
+          />
+          <AppInput
+            label="Konfirmasi kata sandi"
+            icon="lock-closed-outline"
+            placeholder="Ulangi kata sandi"
+            value={confirm}
+            onChangeText={setConfirm}
+            secureTextEntry
+            autoCapitalize="none"
+            error={errors.confirm}
+          />
+          <AppButton
+            label="Daftar"
+            icon="person-add-outline"
+            onPress={register}
+            loading={loading}
+          />
         </View>
       )}
     </AuthLayout>
@@ -91,21 +166,49 @@ export default function PelangganLoginScreen() {
 
 const styles = StyleSheet.create({
   tabs: {
-    flexDirection: "row", backgroundColor: colors.bg, borderRadius: radius.md,
-    padding: 4, marginBottom: 18,
+    flexDirection: "row",
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    padding: 4,
+    marginBottom: 18,
   },
-  tab: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: radius.sm },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+  },
   tabActive: { backgroundColor: colors.primary },
   tabText: { fontSize: 13, fontWeight: "700", color: colors.muted },
   tabTextActive: { color: colors.white },
   banner: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: colors.dangerSoft, borderRadius: radius.md, padding: 10, marginBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 14,
   },
-  bannerText: { flex: 1, fontSize: 12, fontWeight: "600", color: colors.danger },
+  bannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.danger,
+  },
   success: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: colors.primarySoft, borderRadius: radius.md, padding: 10, marginBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 14,
   },
-  successText: { flex: 1, fontSize: 12, fontWeight: "600", color: colors.primary },
+  successText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
+  },
 });

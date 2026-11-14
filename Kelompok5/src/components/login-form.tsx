@@ -4,7 +4,7 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Role } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
-import { mockLogin } from "@/mock/auth";
+import { useAuth } from "@/context/auth";
 import { AppButton } from "./app-button";
 import { AppInput } from "./app-input";
 
@@ -12,34 +12,48 @@ type Props = {
   role: Role;
   redirectTo: Href;
   initialEmail?: string;
-  hint?: string; // info akun testing
+  hint?: string;
 };
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Form login dipakai bersama oleh portal Owner, Karyawan, dan Pelanggan.
-export function LoginForm({ role, redirectTo, initialEmail = "", hint }: Props) {
+export function LoginForm({
+  role,
+  redirectTo,
+  initialEmail = "",
+  hint,
+}: Props) {
   const router = useRouter();
+  const { masuk } = useAuth();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function submit() {
+  async function submit() {
     const e: typeof errors = {};
     if (!email.trim()) e.email = "Email wajib diisi.";
-    else if (!EMAIL_REGEX.test(email.trim())) e.email = "Format email belum benar.";
+    else if (!EMAIL_REGEX.test(email.trim()))
+      e.email = "Format email belum benar.";
     if (!password) e.password = "Kata sandi wajib diisi.";
     setErrors(e);
     setFormError("");
     if (Object.keys(e).length > 0) return;
 
     setLoading(true);
-    const result = mockLogin({ email: email.trim().toLowerCase(), password, role });
-    setLoading(false);
-    if (result.ok) router.replace(redirectTo);
-    else setFormError(result.message);
+    try {
+      const hasil = await masuk(email.trim().toLowerCase(), password, role);
+      if (hasil.ok) router.replace(redirectTo);
+      else setFormError(hasil.message);
+    } catch {
+      setFormError("Tidak dapat terhubung. Periksa koneksi internet.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -76,7 +90,12 @@ export function LoginForm({ role, redirectTo, initialEmail = "", hint }: Props) 
         error={errors.password}
       />
 
-      <AppButton label="Masuk" icon="log-in-outline" onPress={submit} loading={loading} />
+      <AppButton
+        label="Masuk"
+        icon="log-in-outline"
+        onPress={submit}
+        loading={loading}
+      />
 
       {hint ? (
         <View style={styles.hint}>
@@ -90,13 +109,38 @@ export function LoginForm({ role, redirectTo, initialEmail = "", hint }: Props) 
 
 const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: "900", color: colors.ink },
-  subtitle: { fontSize: 13, color: colors.muted, marginTop: 2, marginBottom: 16 },
-  banner: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: colors.dangerSoft, borderRadius: radius.md, padding: 10, marginBottom: 14,
+  subtitle: {
+    fontSize: 13,
+    color: colors.muted,
+    marginTop: 2,
+    marginBottom: 16,
   },
-  bannerText: { flex: 1, fontSize: 12, fontWeight: "600", color: colors.danger },
-  hint: { marginTop: 16, backgroundColor: colors.primarySoft, borderRadius: radius.md, padding: 12 },
-  hintTitle: { fontSize: 11, fontWeight: "800", color: colors.primary, marginBottom: 2 },
+  banner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 14,
+  },
+  bannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.danger,
+  },
+  hint: {
+    marginTop: 16,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    padding: 12,
+  },
+  hintTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.primary,
+    marginBottom: 2,
+  },
   hintText: { fontSize: 12, color: colors.muted },
 });
