@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-<<<<<<< Updated upstream
+
   radioActive: { borderColor: colors.primary },
   radioDot: {
     width: 9,
@@ -430,8 +430,4 @@ const styles = StyleSheet.create({
   // Tombol
   checkoutBtn: { marginBottom: spacing.sm },
 });
-=======
-  radioActive: { borderColor: GREEN },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: GREEN },
-});
->>>>>>> Stashed changes
+
