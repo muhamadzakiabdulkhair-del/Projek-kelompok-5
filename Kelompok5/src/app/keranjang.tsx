@@ -274,7 +274,7 @@ export default function KeranjangScreen() {
             onAction={() => router.replace("/dashboard")}
           />
         }
-        ListFooterComponent={lines.length > 0 ? listFooter : null}
+        ListFooterComponent={lines.length > 0 ? listFooter : undefined}
         renderItem={({ item }) => (
           <CartItemRow
             line={item}

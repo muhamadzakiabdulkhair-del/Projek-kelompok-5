@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { Role } from "@/constants/navigation";
+import { ambilProfil, mulaiLoginGoogle } from "@/services/authService";
 import { supabase } from "../../lib/supabase";
 
 export type Profil = {
@@ -26,27 +27,21 @@ export type HasilAuth =
   | { ok: true; peran: Role; perluVerifikasi?: boolean }
   | { ok: false; message: string };
 
+/** Login Google di web memindahkan halaman, jadi belum ada peran saat fungsi kembali. */
+export type HasilGoogle = HasilAuth | { ok: true; dialihkan: true };
+
 type AuthValue = {
   session: Session | null;
   profil: Profil | null;
   memuat: boolean;
   masuk: (email: string, password: string) => Promise<HasilAuth>;
+  masukGoogle: () => Promise<HasilGoogle>;
   daftar: (nama: string, email: string, password: string) => Promise<HasilAuth>;
   keluar: () => Promise<void>;
   muatUlangProfil: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
-
-async function ambilProfil(userId: string): Promise<Profil | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, nama, peran, phone, avatar_url, status")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error || !data) return null;
-  return data as Profil;
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -56,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sedangMasuk = useRef(false);
 
   // 1. Dengarkan perubahan sesi (termasuk sesi yang dipulihkan dari penyimpanan).
-  //    Di callback ini hanya menyimpan sesi, tanpa memanggil Supabase lagi.
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
@@ -74,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMemuat(false);
       return;
     }
-    if (sedangMasuk.current) return; // fungsi masuk() yang mengurusnya
+    if (sedangMasuk.current) return; // fungsi masuk()/masukGoogle() yang mengurusnya
     let aktif = true;
     (async () => {
       const p = await ambilProfil(uid);
@@ -91,6 +85,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       aktif = false;
     };
   }, [sesiSiap, session?.user?.id]);
+
+  // Dipakai setelah login berhasil: pastikan profil ada dan akunnya aktif.
+  const selesaikanMasuk = useCallback(async (userId: string): Promise<HasilAuth> => {
+    const p = await ambilProfil(userId);
+    if (!p) {
+      await supabase.auth.signOut();
+      return { ok: false, message: "Profil akun tidak ditemukan. Hubungi owner." };
+    }
+    if (p.status === "Nonaktif") {
+      await supabase.auth.signOut();
+      return { ok: false, message: "Akun nonaktif. Hubungi owner." };
+    }
+    setProfil(p);
+    setMemuat(false);
+    return { ok: true, peran: p.peran };
+  }, []);
 
   const masuk = useCallback(
     async (email: string, password: string): Promise<HasilAuth> => {
@@ -117,34 +127,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Pesan sengaja generik: tidak membocorkan apakah emailnya terdaftar.
           return { ok: false, message: "Email atau kata sandi salah." };
         }
-        const p = await ambilProfil(data.user.id);
-        if (!p) {
-          await supabase.auth.signOut();
-          return {
-            ok: false,
-            message: "Profil akun tidak ditemukan. Hubungi owner.",
-          };
-        }
-        if (p.status === "Nonaktif") {
-          await supabase.auth.signOut();
-          return { ok: false, message: "Akun nonaktif. Hubungi owner." };
-        }
-        setProfil(p);
-        setMemuat(false);
-        return { ok: true, peran: p.peran };
+        return await selesaikanMasuk(data.user.id);
       } finally {
         sedangMasuk.current = false;
       }
     },
-    [],
+    [selesaikanMasuk],
   );
 
+  const masukGoogle = useCallback(async (): Promise<HasilGoogle> => {
+    sedangMasuk.current = true;
+    try {
+      const hasil = await mulaiLoginGoogle();
+      switch (hasil.status) {
+        case "dialihkan":
+          // Web: halaman pindah ke Google. Sesi diproses di /auth/callback.
+          return { ok: true, dialihkan: true };
+        case "batal":
+          return { ok: false, message: "Login Google dibatalkan." };
+        case "gagal":
+          return { ok: false, message: hasil.message };
+        case "selesai": {
+          const { data } = await supabase.auth.getUser();
+          if (!data.user) {
+            return { ok: false, message: "Sesi Google tidak terbentuk. Coba lagi." };
+          }
+          return await selesaikanMasuk(data.user.id);
+        }
+      }
+    } finally {
+      sedangMasuk.current = false;
+    }
+  }, [selesaikanMasuk]);
+
   const daftar = useCallback(
-    async (
-      nama: string,
-      email: string,
-      password: string,
-    ): Promise<HasilAuth> => {
+    async (nama: string, email: string, password: string): Promise<HasilAuth> => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -186,8 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user?.id]);
 
   const value = useMemo(
-    () => ({ session, profil, memuat, masuk, daftar, keluar, muatUlangProfil }),
-    [session, profil, memuat, masuk, daftar, keluar, muatUlangProfil],
+    () => ({ session, profil, memuat, masuk, masukGoogle, daftar, keluar, muatUlangProfil }),
+    [session, profil, memuat, masuk, masukGoogle, daftar, keluar, muatUlangProfil],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
