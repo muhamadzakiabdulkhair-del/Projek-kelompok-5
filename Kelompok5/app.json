@@ -17,8 +17,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.kelompok5.vapestore"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -38,16 +37,6 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "extra": {
-      "router": {
-        "asyncRoutes": {
-          "web": true
-        }
-      },
-      "eas": {
-        "projectId": "27b9f8ee-4acf-41e5-9e54-e07ac7a7feb1"
-      }
     }
   }
 }
