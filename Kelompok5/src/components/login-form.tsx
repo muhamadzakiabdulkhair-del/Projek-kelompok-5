@@ -54,8 +54,9 @@ export function LoginForm({ initialEmail = "" }: Props) {
     setLoading(true);
     try {
       const hasil = await masukGoogle();
-      if (hasil.ok) router.replace(BERANDA[hasil.peran]);
-      else if (hasil.message) setFormError(hasil.message);
+      if (!hasil.ok) setFormError(hasil.message);
+      else if ("peran" in hasil) router.replace(BERANDA[hasil.peran]);
+      // "dialihkan" (web): halaman sedang pindah ke Google, tidak perlu melakukan apa-apa.
     } catch {
       setFormError("Tidak dapat terhubung. Periksa koneksi internet.");
     } finally {
