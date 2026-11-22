@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -13,6 +12,7 @@ import {
 } from "react-native";
 
 import { AppButton } from "@/components/app-button";
+import { useDialogLokal } from "@/components/app-dialog";
 import { AppInput } from "@/components/app-input";
 import { colors, radius, spacing } from "@/constants/palette";
 import {
@@ -45,23 +45,6 @@ type Props = {
 
 type Mode = "menu" | "edit" | "password";
 
-// Konfirmasi yang jalan di web (window.confirm) dan native (Alert.alert)
-function konfirmasi(
-  judul: string,
-  pesan: string,
-  labelYa: string,
-  onYes: () => void,
-) {
-  if (Platform.OS === "web") {
-    if (window.confirm(pesan)) onYes();
-    return;
-  }
-  Alert.alert(judul, pesan, [
-    { text: "Batal", style: "cancel" },
-    { text: labelYa, onPress: onYes },
-  ]);
-}
-
 export function AkunSheet(props: Props) {
   // Dipasang ulang setiap akun berganti, jadi isian form selalu bersih
   if (!props.akun) return null;
@@ -78,6 +61,7 @@ function IsiSheet({
 }: Props & { akun: Akun }) {
   const [mode, setMode] = useState<Mode>("menu");
   const [busy, setBusy] = useState(false);
+  const dialog = useDialogLokal();
   const [pesanError, setPesanError] = useState<string | null>(null);
 
   const [nama, setNama] = useState(akun.nama);
@@ -161,11 +145,13 @@ function IsiSheet({
       ? `Nonaktifkan akun ${akun.nama}? Akun tidak akan bisa login sampai diaktifkan kembali.`
       : `Aktifkan kembali akun ${akun.nama}? Akun bisa login lagi.`;
 
-    konfirmasi(
-      aktif ? "Nonaktifkan Akun" : "Aktifkan Akun",
+    dialog.konfirmasi({
+      judul: aktif ? "Nonaktifkan Akun" : "Aktifkan Akun",
       pesan,
-      aktif ? "Nonaktifkan" : "Aktifkan",
-      async () => {
+      labelYa: aktif ? "Nonaktifkan" : "Aktifkan",
+      bahaya: aktif,
+      tipe: aktif ? "peringatan" : "info",
+      onYa: async () => {
         setPesanError(null);
         setBusy(true);
         try {
@@ -183,7 +169,7 @@ function IsiSheet({
           setBusy(false);
         }
       },
-    );
+    });
   }
 
   const judul =
@@ -373,6 +359,7 @@ function IsiSheet({
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+        {dialog.element}
       </View>
     </Modal>
   );

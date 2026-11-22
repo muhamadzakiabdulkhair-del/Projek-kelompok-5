@@ -4,10 +4,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppButton }   from "@/components/app-button";
+import { useDialog }   from "@/components/app-dialog";
 import { EmptyState }  from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
 import { QtyStepper }  from "@/components/qty-stepper";
@@ -32,6 +31,7 @@ export default function ProdukDetailScreen() {
   const { id }       = useLocalSearchParams<{ id: string }>();
   const { count } = useCart();
   const { tambah } = useBelanja();
+  const dialog = useDialog();
   const [qty, setQty] = useState(1);
 
   // ── Fetch produk dari Supabase ────────────────────────────────────────────
@@ -122,12 +122,14 @@ export default function ProdukDetailScreen() {
   function addToCart() {
     if (!tambah(product!, qty)) return; // tamu diarahkan login, staf ditolak
     const msg = `${qty} × ${product!.name} masuk ke keranjang.`;
-    if (Platform.OS === "web") window.alert(msg);
-    else
-      Alert.alert("Ditambahkan", msg, [
-        { text: "Lanjut belanja", style: "cancel" },
-        { text: "Lihat keranjang", onPress: () => router.push("/keranjang") },
-      ]);
+    dialog.konfirmasi({
+      judul: "Ditambahkan",
+      pesan: msg,
+      tipe: "sukses",
+      labelYa: "Lihat keranjang",
+      labelBatal: "Lanjut belanja",
+      onYa: () => router.push("/keranjang"),
+    });
   }
 
   // ── Gambar: foto dari Storage jika ada, fallback ke aset lokal ────────────
@@ -149,7 +151,7 @@ export default function ProdukDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Hero foto */}
-        <View style={[styles.hero, product.fotoUrl && styles.heroCover]}>
+        <View style={[styles.hero, product.fotoUrl ? styles.heroCover : styles.heroLocal]}>
           {heroContent}
         </View>
 
@@ -164,14 +166,17 @@ export default function ProdukDetailScreen() {
               <Text style={styles.reviews}>({product.reviews} ulasan)</Text>
             </View>
           )}
-          <Text style={styles.price}>{formatRupiah(product.price)}</Text>
-          <View style={[styles.stockPill, { borderColor: stockColor }]}>
-            <Ionicons
-              name={soldOut ? "close-circle" : "checkmark-circle"}
-              size={14}
-              color={stockColor}
-            />
-            <Text style={[styles.stockText, { color: stockColor }]}>{stockLabel}</Text>
+          {/* Harga di kiri, status stok di kanan: hemat ruang & lebih rapi */}
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{formatRupiah(product.price)}</Text>
+            <View style={[styles.stockPill, { borderColor: stockColor }]}>
+              <Ionicons
+                name={soldOut ? "close-circle" : "checkmark-circle"}
+                size={14}
+                color={stockColor}
+              />
+              <Text style={[styles.stockText, { color: stockColor }]}>{stockLabel}</Text>
+            </View>
           </View>
         </View>
 
@@ -238,7 +243,7 @@ export default function ProdukDetailScreen() {
 
 const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 14, paddingBottom: 24, gap: 12 },
+  content: { padding: 14, paddingBottom: 20, gap: 12 },
   center:  { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 13, color: colors.muted },
 
@@ -254,9 +259,11 @@ const styles = StyleSheet.create({
   badgeText: { color: colors.white, fontSize: 9, fontWeight: "800" },
 
   hero: {
-    height: 240, backgroundColor: colors.tint, borderRadius: radius.lg,
-    alignItems: "center", justifyContent: "center", padding: 24, overflow: "hidden",
+    height: 220, backgroundColor: colors.tint, borderRadius: radius.lg,
+    alignItems: "center", justifyContent: "center", padding: 16, overflow: "hidden",
   },
+  // Foto bawaan berlatar putih: samakan latar kartu agar tidak tampak kotak di dalam kotak
+  heroLocal: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   heroCover: { padding: 0 },   // foto dari Storage: full cover tanpa padding
   heroImg: { width: "100%", height: "100%" },
 
@@ -269,10 +276,11 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   rating:  { fontSize: 13, fontWeight: "800", color: colors.star },
   reviews: { fontSize: 12, color: colors.muted },
-  price:   { fontSize: 24, fontWeight: "900", color: colors.primary, marginTop: 4 },
+  priceRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 },
+  price:   { fontSize: 24, fontWeight: "900", color: colors.primary },
   stockPill: {
     alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5,
-    borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, marginTop: 4,
+    borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4,
   },
   stockText: { fontSize: 12, fontWeight: "700" },
 

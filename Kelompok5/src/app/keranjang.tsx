@@ -2,10 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   FlatList,
   Image,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -13,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "@/components/app-button";
+import { useDialog } from "@/components/app-dialog";
 import { BottomNav } from "@/components/bottom-nav";
 import { EmptyState } from "@/components/empty-state";
 import { QtyStepper } from "@/components/qty-stepper";
@@ -127,6 +126,7 @@ export default function KeranjangScreen() {
   const router = useRouter();
   const { lines, total, count, setQty, remove, clear } = useCart();
   const { addOrder } = useOrders();
+  const dialog = useDialog();
   const { profil } = useAuth();
   const [payment, setPayment] = useState<PaymentMethod>("TRANSFER_BANK");
   const [loading, setLoading] = useState(false);
@@ -168,36 +168,22 @@ export default function KeranjangScreen() {
       const saved = await addOrder(buildOrder()); // id (INV-xxxx) dari database
       setLoading(false);
 
-      if (Platform.OS === "web") {
-        clear();
-        window.alert(`Pesanan ${saved.id} berhasil dibuat!\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`);
-        router.replace("/pesanan");
-        return;
-      }
-
-      Alert.alert(
-        "Pesanan Dibuat ✓",
-        `${saved.id}\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`,
-        [
-          {
-            text: "Lihat Pesanan",
-            onPress: () => {
-              clear();
-              router.replace("/pesanan");
-            },
-          },
-          {
-            text: "Lanjut Belanja",
-            style: "cancel",
-            onPress: () => clear(),
-          },
-        ]
-      );
+      dialog.konfirmasi({
+        judul: "Pesanan Dibuat",
+        pesan: `${saved.id}\nTotal: ${formatRupiah(grandTotal)}\nMetode: ${payLabel}`,
+        tipe: "sukses",
+        labelYa: "Lihat Pesanan",
+        labelBatal: "Lanjut Belanja",
+        onYa: () => {
+          clear();
+          router.replace("/pesanan");
+        },
+        onBatal: () => clear(),
+      });
     } catch (err: any) {
       setLoading(false);
       const msg = err?.message ?? "Terjadi kesalahan.";
-      if (Platform.OS === "web") window.alert(`Gagal membuat pesanan: ${msg}`);
-      else Alert.alert("Gagal membuat pesanan", msg);
+      dialog.info({ judul: "Gagal membuat pesanan", pesan: msg, tipe: "error" });
     }
   };
 
