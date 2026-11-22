@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { DialogProvider } from "@/components/app-dialog";
 import { BERANDA, LOGIN_HREF, type Role } from "@/constants/navigation";
 import { colors } from "@/constants/palette";
 import { AuthProvider, useAuth } from "@/context/auth";
@@ -83,6 +84,7 @@ export default function RootLayout() {
       <AuthProvider>
         <OrdersProvider>
           <CartProvider>
+           <DialogProvider>
             <AnimatedSplashOverlay />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
@@ -100,6 +102,7 @@ export default function RootLayout() {
               <Stack.Screen name="auth/callback" />
             </Stack>
             <PenjagaRute />
+           </DialogProvider>
           </CartProvider>
         </OrdersProvider>
       </AuthProvider>

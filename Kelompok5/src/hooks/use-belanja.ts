@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
-import { Alert, Platform } from "react-native";
+import { useDialog } from "@/components/app-dialog";
 import { LOGIN_HREF } from "@/constants/navigation";
 import { useAuth } from "@/context/auth";
 import { useCart } from "@/context/cart";
@@ -12,6 +12,7 @@ export function useBelanja() {
   const router = useRouter();
   const { profil } = useAuth();
   const { add } = useCart();
+  const dialog = useDialog();
 
   // Tombol keranjang ditampilkan untuk tamu dan pelanggan, disembunyikan untuk owner/karyawan
   const tampilkanTombol = !profil || profil.peran === "pelanggan";
@@ -21,30 +22,28 @@ export function useBelanja() {
       if (!profil) {
         const pesan =
           "Untuk menambahkan ke keranjang dan membuat pesanan, kamu perlu masuk atau daftar sebagai pelanggan.";
-        if (Platform.OS === "web") {
-          if (window.confirm(`Masuk dulu\n\n${pesan}\n\nMasuk sekarang?`)) {
-            router.push(LOGIN_HREF);
-          }
-        } else {
-          Alert.alert("Masuk dulu", pesan, [
-            { text: "Nanti", style: "cancel" },
-            { text: "Masuk / Daftar", onPress: () => router.push(LOGIN_HREF) },
-          ]);
-        }
+        dialog.konfirmasi({
+          judul: "Masuk dulu",
+          pesan,
+          tipe: "info",
+          ikon: "log-in-outline",
+          labelBatal: "Nanti",
+          labelYa: "Masuk / Daftar",
+          onYa: () => router.push(LOGIN_HREF),
+        });
         return false;
       }
 
       if (profil.peran !== "pelanggan") {
         const pesan = "Akun owner dan karyawan tidak bisa berbelanja. Gunakan akun pelanggan.";
-        if (Platform.OS === "web") window.alert(pesan);
-        else Alert.alert("Tidak bisa berbelanja", pesan);
+        dialog.info({ judul: "Tidak bisa berbelanja", pesan, tipe: "peringatan" });
         return false;
       }
 
       add(product, qty);
       return true;
     },
-    [profil, add, router],
+    [profil, add, router, dialog],
   );
 
   return { tambah, tampilkanTombol };

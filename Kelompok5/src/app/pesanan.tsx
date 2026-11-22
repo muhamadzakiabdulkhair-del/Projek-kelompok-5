@@ -2,9 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, Platform, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "@/components/app-button";
+import { useDialog } from "@/components/app-dialog";
 import { BottomNav } from "@/components/bottom-nav";
 import { EmptyState } from "@/components/empty-state";
 import { FilterChips } from "@/components/filter-chips";
@@ -34,6 +35,7 @@ export default function PesananScreen() {
   const isStaff = role !== "pelanggan";
 
   const { orders, loading, refresh, advanceStatus } = useOrders();
+  const dialog = useDialog();
 
   // Muat ulang tiap layar ini dibuka, supaya perubahan dari perangkat lain ikut tampil
   useFocusEffect(
@@ -47,8 +49,7 @@ export default function PesananScreen() {
       await advanceStatus(id);
     } catch (err: any) {
       const msg = err?.message ?? "Terjadi kesalahan.";
-      if (Platform.OS === "web") window.alert(`Gagal mengubah status: ${msg}`);
-      else Alert.alert("Gagal mengubah status", msg);
+      dialog.info({ judul: "Gagal mengubah status", pesan: msg, tipe: "error" });
     }
   }
   const [filter, setFilter] = useState("Semua");

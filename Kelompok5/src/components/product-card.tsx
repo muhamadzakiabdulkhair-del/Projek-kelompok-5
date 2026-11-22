@@ -15,7 +15,7 @@ export function ProductCard({ product, onPress, onAdd, style }: Props) {
   const soldOut = product.stock <= 0;
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed, style]}>
-      <View style={styles.imgWrap}>
+      <View style={[styles.imgWrap, !product.fotoUrl && styles.imgWrapLocal]}>
         {product.fotoUrl ? (
           <Image source={{ uri: product.fotoUrl }} style={styles.imgCover} resizeMode="cover" />
         ) : (
@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.9 },
   imgWrap: { height: 130, backgroundColor: colors.tint, alignItems: "center", justifyContent: "center", padding: 12, overflow: "hidden" },
+  // Foto bawaan berlatar putih: samakan latar agar tidak tampak kotak di dalam kotak
+  imgWrapLocal: { backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   img:     { width: "100%", height: "100%" },
   imgCover:{ width: "100%", height: "100%", margin: -12 }, // full bleed untuk foto Storage
   soldBadge: {
@@ -64,7 +66,7 @@ const styles = StyleSheet.create({
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
   },
   soldText: { color: colors.white, fontSize: 10, fontWeight: "800" },
-  body: { padding: 10 },
+  body: { padding: 10, flex: 1 },
   sub: { fontSize: 10, color: colors.placeholder, marginBottom: 2 },
   name: { fontSize: 13, fontWeight: "700", color: colors.ink, minHeight: 34, marginBottom: 4 },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 4 },
@@ -74,6 +76,7 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
     backgroundColor: colors.primary, borderRadius: radius.sm, paddingVertical: 8,
+    marginTop: "auto", // tombol selalu rata di dasar kartu
   },
   addOff: { opacity: 0.4 },
   addText: { color: colors.white, fontSize: 12, fontWeight: "800" },

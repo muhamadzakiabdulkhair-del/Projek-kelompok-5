@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
   type LayoutRectangle,
 } from "react-native";
@@ -52,6 +53,12 @@ type Props = {
   /** Set tanggal mana saja yang punya dot indikator */
   markedDates?: Set<number>; // tanggal (1-31) di bulan+tahun yang sedang ditampilkan
   onViewChange?: (year: number, month: number) => void;
+  /**
+   * true = tampilkan tombol ✕ untuk mengosongkan tanggal, dan mengetuk tanggal
+   * yang sama lagi akan mengosongkannya (untuk filter opsional seperti "Semua tanggal").
+   * Default false: ikon kalender selalu membuka kalender.
+   */
+  clearable?: boolean;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -63,7 +70,9 @@ export function DatePickerInput({
   onChange,
   markedDates,
   onViewChange,
+  clearable = false,
 }: Props) {
+  const { width: layarLebar } = useWindowDimensions();
   const today    = new Date();
   const initYear  = value ? Number(value.split("-")[0]) : today.getFullYear();
   const initMonth = value ? Number(value.split("-")[1]) : today.getMonth() + 1;
@@ -101,7 +110,7 @@ export function DatePickerInput({
 
   function pickDay(day: number) {
     const ds = `${viewYear}-${String(viewMonth).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    onChange(value === ds ? null : ds); // tap lagi = reset
+    onChange(clearable && value === ds ? null : ds); // tap lagi = reset (hanya bila clearable)
     setOpen(false);
   }
 
@@ -127,8 +136,9 @@ export function DatePickerInput({
   // Popover position — tepat di bawah field, lebar fixed kecil
   const POP_W   = 260;
   const popTop  = anchor ? anchor.y + anchor.height + 4 : 0;
-  const popLeft = anchor ? anchor.x : 0;
-  const popW    = POP_W;
+  const popW    = Math.min(POP_W, layarLebar - 16);
+  // Jaga agar kalender tidak keluar dari tepi kanan layar
+  const popLeft = anchor ? Math.max(8, Math.min(anchor.x, layarLebar - popW - 8)) : 0;
 
   return (
     <>
@@ -143,19 +153,24 @@ export function DatePickerInput({
           <Text style={[s.boxText, !value && s.placeholder]} numberOfLines={1}>
             {displayValue || placeholder}
           </Text>
-          <TouchableOpacity
-            onPress={(e) => {
-              if (value) { e.stopPropagation(); onChange(null); }
-              else handleOpen();
-            }}
-            hitSlop={10}
-          >
-            <Ionicons
-              name="calendar-outline"
-              size={17}
-              color={open || value ? GREEN : colors.muted}
-            />
-          </TouchableOpacity>
+          {clearable && value ? (
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                onChange(null);
+              }}
+              hitSlop={10}
+              accessibilityLabel="Hapus tanggal"
+            >
+              <Ionicons name="close-circle" size={17} color={colors.muted} />
+            </TouchableOpacity>
+          ) : null}
+          {/* Ikon kalender: ketukan di mana pun pada kotak (termasuk ikon) membuka kalender */}
+          <Ionicons
+            name="calendar-outline"
+            size={17}
+            color={open || value ? GREEN : colors.muted}
+          />
         </TouchableOpacity>
       </View>
 
