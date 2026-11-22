@@ -68,11 +68,8 @@ function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { profil, session, keluar } = useAuth();
+  const { profil, keluar } = useAuth();
   const [ubahPassword, setUbahPassword] = useState(false);
-  
-  // Akun yang masuk hanya lewat Google tidak punya kata sandi untuk diubah
-  const punyaPassword = !!session?.user?.identities?.some((i) => i.provider === "email");
 
   // Peran diambil dari akun yang login, bukan dari alamat halaman
   const role: Role = profil?.peran ?? "pelanggan";
@@ -154,13 +151,11 @@ export default function ProfilScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pengaturan</Text>
           <MenuItem icon="create-outline" label="Edit Profil" />
-            {punyaPassword && (
-              <MenuItem
-                icon="lock-closed-outline"
-                label="Ubah Kata Sandi"
-                onPress={() => setUbahPassword(true)}
-              />
-            )}
+          <MenuItem
+            icon="lock-closed-outline"
+            label="Ubah Kata Sandi"
+            onPress={() => setUbahPassword(true)}
+          />
           <MenuItem icon="notifications-outline" label="Notifikasi" />
         </View>
 
