@@ -1,19 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/app-button";
 import { useDialogLokal } from "@/components/app-dialog";
 import { AppInput } from "@/components/app-input";
+import { ModalTengah } from "@/components/modal-tengah";
 import { colors, radius, spacing } from "@/constants/palette";
 import {
   ubahAkun,
@@ -27,11 +19,11 @@ import {
   type StatusAkun,
 } from "@/services/karyawanService";
 
-// Sheet aksi untuk satu akun karyawan/pelanggan: Edit Data, Reset Password,
+// Pop-up (di tengah layar) aksi untuk satu akun karyawan/pelanggan: Edit Data, Reset Password,
 // Nonaktifkan/Aktifkan. Dipakai oleh halaman Kelola Karyawan dan Kelola Pelanggan.
 
 type Props = {
-  /** Akun yang diketuk. null = sheet tertutup. */
+  /** Akun yang diketuk. null = pop-up tertutup. */
   akun: Akun | null;
   peran: PeranAkun;
   onTutup: () => void;
@@ -175,213 +167,197 @@ function IsiSheet({
   const judul =
     mode === "edit" ? "Edit Data" : mode === "password" ? "Reset Password" : "Kelola Akun";
 
-  return (
-    <Modal visible animationType="slide" transparent onRequestClose={tutup}>
-      <View style={styles.backdrop}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHead}>
-              <Text style={styles.sheetTitle}>{judul}</Text>
-              <Pressable onPress={tutup} hitSlop={10} accessibilityLabel="Tutup">
-                <Ionicons name="close" size={22} color={colors.ink} />
-              </Pressable>
-            </View>
-
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              {pesanError ? (
-                <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle" size={16} color={colors.danger} />
-                  <Text style={styles.errorBoxText}>{pesanError}</Text>
-                </View>
-              ) : null}
-
-              {/* Ringkasan akun */}
-              <View style={styles.ringkas}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {(akun.nama.trim()[0] ?? "?").toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.ringkasInfo}>
-                  <Text style={styles.nama} numberOfLines={1}>{akun.nama}</Text>
-                  <Text style={styles.email} numberOfLines={1}>{akun.email}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: aktif ? colors.primarySoft : colors.dangerSoft },
-                  ]}
-                >
-                  <Text style={[styles.badgeText, { color: aktif ? colors.primary : colors.danger }]}>
-                    {akun.status}
-                  </Text>
-                </View>
-              </View>
-
-              {mode === "menu" ? (
-                <View style={styles.aksi}>
-                  <AppButton
-                    variant="outline"
-                    icon="create-outline"
-                    label="Edit Data"
-                    disabled={busy}
-                    onPress={() => {
-                      setPesanError(null);
-                      setMode("edit");
-                    }}
-                  />
-                  <AppButton
-                    variant="outline"
-                    icon="lock-closed-outline"
-                    label="Reset Password"
-                    disabled={busy}
-                    onPress={() => {
-                      setPesanError(null);
-                      setMode("password");
-                    }}
-                  />
-                  <AppButton
-                    variant={aktif ? "danger" : "soft"}
-                    icon={aktif ? "ban-outline" : "checkmark-circle-outline"}
-                    label={aktif ? "Nonaktifkan Akun" : "Aktifkan Akun"}
-                    loading={busy}
-                    onPress={ubahStatus}
-                  />
-                  <Text style={styles.catatan}>
-                    {aktif
-                      ? `Akun ${labelPeran} yang dinonaktifkan tidak bisa login, tetapi datanya tetap tersimpan. Akun tidak dapat dihapus.`
-                      : `Akun ${labelPeran} ini sedang nonaktif dan tidak bisa login. Aktifkan kembali agar bisa dipakai.`}
-                  </Text>
-                </View>
-              ) : null}
-
-              {mode === "edit" ? (
-                <View>
-                  <AppInput
-                    label="Nama Lengkap"
-                    icon="person-outline"
-                    value={nama}
-                    onChangeText={setNama}
-                    error={errNama}
-                    maxLength={100}
-                    autoCapitalize="words"
-                    editable={!busy}
-                  />
-                  <AppInput
-                    label="Nomor Telepon (opsional)"
-                    icon="call-outline"
-                    placeholder="Contoh: 08123456789"
-                    value={phone}
-                    onChangeText={setPhone}
-                    error={errPhone}
-                    keyboardType="phone-pad"
-                    maxLength={20}
-                    editable={!busy}
-                  />
-                  <AppInput
-                    label="Email"
-                    icon="mail-outline"
-                    value={akun.email}
-                    editable={false}
-                  />
-                  <Text style={styles.catatan}>
-                    Email adalah identitas login dan tidak dapat diubah dari sini.
-                  </Text>
-                  <View style={styles.tombolBaris}>
-                    <AppButton
-                      style={styles.tombolBagi}
-                      variant="outline"
-                      label="Batal"
-                      disabled={busy}
-                      onPress={kembaliKeMenu}
-                    />
-                    <AppButton
-                      style={styles.tombolBagi}
-                      label="Simpan"
-                      icon="save-outline"
-                      loading={busy}
-                      onPress={simpanEdit}
-                    />
-                  </View>
-                </View>
-              ) : null}
-
-              {mode === "password" ? (
-                <View>
-                  <AppInput
-                    label="Password Baru"
-                    icon="lock-closed-outline"
-                    placeholder="Minimal 8 karakter"
-                    value={passBaru}
-                    onChangeText={setPassBaru}
-                    error={errPass}
-                    secureTextEntry
-                    maxLength={72}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!busy}
-                  />
-                  <AppInput
-                    label="Konfirmasi Password"
-                    icon="lock-closed-outline"
-                    placeholder="Ulangi password baru"
-                    value={konf}
-                    onChangeText={setKonf}
-                    error={errKonf}
-                    secureTextEntry
-                    maxLength={72}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!busy}
-                  />
-                  <Text style={styles.catatan}>
-                    Sampaikan password baru langsung kepada yang bersangkutan. Sesi yang sedang
-                    login di perangkat lain tidak otomatis keluar.
-                  </Text>
-                  <View style={styles.tombolBaris}>
-                    <AppButton
-                      style={styles.tombolBagi}
-                      variant="outline"
-                      label="Batal"
-                      disabled={busy}
-                      onPress={kembaliKeMenu}
-                    />
-                    <AppButton
-                      style={styles.tombolBagi}
-                      label="Reset"
-                      icon="key-outline"
-                      loading={busy}
-                      onPress={simpanPassword}
-                    />
-                  </View>
-                </View>
-              ) : null}
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-        {dialog.element}
+  // Tombol bawah (tetap terlihat). Mode menu tidak butuh footer.
+  let footer = null;
+  if (mode === "edit") {
+    footer = (
+      <View style={styles.tombolBaris}>
+        <AppButton
+          style={styles.tombolBagi}
+          variant="outline"
+          label="Batal"
+          disabled={busy}
+          onPress={kembaliKeMenu}
+        />
+        <AppButton
+          style={styles.tombolBagi}
+          label="Simpan"
+          icon="save-outline"
+          loading={busy}
+          onPress={simpanEdit}
+        />
       </View>
-    </Modal>
+    );
+  } else if (mode === "password") {
+    footer = (
+      <View style={styles.tombolBaris}>
+        <AppButton
+          style={styles.tombolBagi}
+          variant="outline"
+          label="Batal"
+          disabled={busy}
+          onPress={kembaliKeMenu}
+        />
+        <AppButton
+          style={styles.tombolBagi}
+          label="Reset"
+          icon="key-outline"
+          loading={busy}
+          onPress={simpanPassword}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <ModalTengah
+      judul={judul}
+      onTutup={tutup}
+      tutupSaatKetukLuar={!busy}
+      footer={footer}
+      overlay={dialog.element}
+    >
+      {pesanError ? (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={16} color={colors.danger} />
+          <Text style={styles.errorBoxText}>{pesanError}</Text>
+        </View>
+      ) : null}
+
+      {/* Ringkasan akun */}
+      <View style={styles.ringkas}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {(akun.nama.trim()[0] ?? "?").toUpperCase()}
+          </Text>
+        </View>
+        <View style={styles.ringkasInfo}>
+          <Text style={styles.nama} numberOfLines={1}>{akun.nama}</Text>
+          <Text style={styles.email} numberOfLines={1}>{akun.email}</Text>
+        </View>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: aktif ? colors.primarySoft : colors.dangerSoft },
+          ]}
+        >
+          <Text style={[styles.badgeText, { color: aktif ? colors.primary : colors.danger }]}>
+            {akun.status}
+          </Text>
+        </View>
+      </View>
+
+      {mode === "menu" ? (
+        <View style={styles.aksi}>
+          <AppButton
+            variant="outline"
+            icon="create-outline"
+            label="Edit Data"
+            disabled={busy}
+            onPress={() => {
+              setPesanError(null);
+              setMode("edit");
+            }}
+          />
+          <AppButton
+            variant="outline"
+            icon="lock-closed-outline"
+            label="Reset Password"
+            disabled={busy}
+            onPress={() => {
+              setPesanError(null);
+              setMode("password");
+            }}
+          />
+          <AppButton
+            variant={aktif ? "danger" : "soft"}
+            icon={aktif ? "ban-outline" : "checkmark-circle-outline"}
+            label={aktif ? "Nonaktifkan Akun" : "Aktifkan Akun"}
+            loading={busy}
+            onPress={ubahStatus}
+          />
+          <Text style={styles.catatan}>
+            {aktif
+              ? `Akun ${labelPeran} yang dinonaktifkan tidak bisa login, tetapi datanya tetap tersimpan. Akun tidak dapat dihapus.`
+              : `Akun ${labelPeran} ini sedang nonaktif dan tidak bisa login. Aktifkan kembali agar bisa dipakai.`}
+          </Text>
+        </View>
+      ) : null}
+
+      {mode === "edit" ? (
+        <View>
+          <AppInput
+            label="Nama Lengkap"
+            icon="person-outline"
+            value={nama}
+            onChangeText={setNama}
+            error={errNama}
+            maxLength={100}
+            autoCapitalize="words"
+            editable={!busy}
+          />
+          <AppInput
+            label="Nomor Telepon (opsional)"
+            icon="call-outline"
+            placeholder="Contoh: 08123456789"
+            value={phone}
+            onChangeText={setPhone}
+            error={errPhone}
+            keyboardType="phone-pad"
+            maxLength={20}
+            editable={!busy}
+          />
+          <AppInput
+            label="Email"
+            icon="mail-outline"
+            value={akun.email}
+            editable={false}
+          />
+          <Text style={styles.catatan}>
+            Email adalah identitas login dan tidak dapat diubah dari sini.
+          </Text>
+        </View>
+      ) : null}
+
+      {mode === "password" ? (
+        <View>
+          <AppInput
+            label="Password Baru"
+            icon="lock-closed-outline"
+            placeholder="Minimal 8 karakter"
+            value={passBaru}
+            onChangeText={setPassBaru}
+            error={errPass}
+            secureTextEntry
+            maxLength={72}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!busy}
+          />
+          <AppInput
+            label="Konfirmasi Password"
+            icon="lock-closed-outline"
+            placeholder="Ulangi password baru"
+            value={konf}
+            onChangeText={setKonf}
+            error={errKonf}
+            secureTextEntry
+            maxLength={72}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!busy}
+          />
+          <Text style={styles.catatan}>
+            Sampaikan password baru langsung kepada yang bersangkutan. Sesi yang sedang
+            login di perangkat lain tidak otomatis keluar.
+          </Text>
+        </View>
+      ) : null}
+    </ModalTengah>
   );
 }
 
 const styles = StyleSheet.create({
-  // colors.primaryDark + alpha 0x8C (sekitar 55%) untuk latar gelap di belakang sheet
-  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: `${colors.primaryDark}8C` },
-  sheet: {
-    maxHeight: "92%",
-    backgroundColor: colors.surface,
-    padding: 18,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  sheetHead: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sheetTitle: { fontSize: 18, fontWeight: "900", color: colors.ink },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -419,8 +395,8 @@ const styles = StyleSheet.create({
   badge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   badgeText: { fontSize: 10, fontWeight: "800" },
 
-  aksi: { gap: spacing.md, paddingBottom: spacing.sm },
-  catatan: { fontSize: 12, color: colors.muted, lineHeight: 18, marginBottom: spacing.md },
-  tombolBaris: { flexDirection: "row", gap: spacing.md, paddingBottom: spacing.sm },
+  aksi: { gap: spacing.md },
+  catatan: { fontSize: 12, color: colors.muted, lineHeight: 18 },
+  tombolBaris: { flexDirection: "row", gap: spacing.md },
   tombolBagi: { flex: 1 },
 });
