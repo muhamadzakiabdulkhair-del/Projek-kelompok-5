@@ -16,10 +16,12 @@ import {
 } from "react-native";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { DialogProvider } from "@/components/app-dialog";
+import { NotifikasiBanner } from "@/components/notifikasi-banner";
 import { BERANDA, LOGIN_HREF, type Role } from "@/constants/navigation";
 import { colors } from "@/constants/palette";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { CartProvider } from "@/context/cart";
+import { NotifikasiProvider } from "@/context/notifikasi";
 import { OrdersProvider } from "@/context/orders";
 
 // Mengembalikan tujuan pengalihan, atau null bila halaman boleh dibuka.
@@ -36,7 +38,7 @@ function tentukanTujuan(pathname: string, peran: Role | null): Href | null {
     p === "/admin/karyawan" ||
     p === "/admin/pelanggan";
   const butuhStaf = p === "/kelola-produk";
-  const butuhLogin = p === "/pesanan" || p === "/profil";
+  const butuhLogin = p === "/pesanan" || p === "/profil" || p === "/notifikasi";
   const butuhPelanggan = p === "/keranjang";
 
   // Belum login: halaman khusus akun diarahkan ke login, halaman umum bebas
@@ -82,6 +84,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
+        <NotifikasiProvider>
         <OrdersProvider>
           <CartProvider>
            <DialogProvider>
@@ -93,6 +96,7 @@ export default function RootLayout() {
               <Stack.Screen name="keranjang" />
               <Stack.Screen name="pesanan" />
               <Stack.Screen name="profil" />
+              <Stack.Screen name="notifikasi" />
               <Stack.Screen name="kelola-produk" />
               <Stack.Screen name="admin/dashboard" />
               <Stack.Screen name="admin/laporan" />
@@ -101,10 +105,12 @@ export default function RootLayout() {
               <Stack.Screen name="login" />
               <Stack.Screen name="auth/callback" />
             </Stack>
+            <NotifikasiBanner />
             <PenjagaRute />
            </DialogProvider>
           </CartProvider>
         </OrdersProvider>
+        </NotifikasiProvider>
       </AuthProvider>
     </ThemeProvider>
   );
