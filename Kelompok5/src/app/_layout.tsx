@@ -25,6 +25,9 @@ import { OrdersProvider } from "@/context/orders";
 // Peran selalu diambil dari akun yang login (tabel profiles), bukan dari alamat halaman.
 function tentukanTujuan(pathname: string, peran: Role | null): Href | null {
   const p = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  
+  // Tujuan balik dari Google: layar itu sendiri yang mengalihkan setelah sesi siap
+  if (p === "/auth/callback") return null;
 
   const butuhOwner =
     p === "/admin/dashboard" ||
@@ -94,6 +97,7 @@ export default function RootLayout() {
               <Stack.Screen name="admin/karyawan" />
               <Stack.Screen name="admin/pelanggan" />
               <Stack.Screen name="login" />
+              <Stack.Screen name="auth/callback" />
             </Stack>
             <PenjagaRute />
           </CartProvider>
