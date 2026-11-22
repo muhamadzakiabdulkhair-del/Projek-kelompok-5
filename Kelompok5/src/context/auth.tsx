@@ -13,6 +13,14 @@ import type { Role } from "@/constants/navigation";
 import { ambilProfil, mulaiLoginGoogle } from "@/services/authService";
 import { supabase } from "../../lib/supabase";
 
+ perbaikan-login-google
+
+WebBrowser.maybeCompleteAuthSession();
+
+// Alamat proxy Expo untuk login Google di Expo Go (HP/emulator)
+const PROXY_URL = "https://auth.expo.io/@anonymous/Proyek-kelompok-5";
+
+ main
 export type Profil = {
   id: string;
   email: string;
@@ -154,6 +162,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           return await selesaikanMasuk(data.user.id);
         }
+ perbaikan-login-google
+
+        // Halaman akan berpindah ke Google. Sesi diproses setelah kembali.
+        return { ok: false, message: "" };
+      }
+
+      // ── HP / Expo Go: lewat proxy Expo ──
+      const returnUrl = Linking.createURL("/");
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: PROXY_URL, skipBrowserRedirect: true },
+      });
+      if (error || !data.url) {
+        return { ok: false, message: "Tidak dapat membuka Google. Coba lagi." };
+      }
+
+      const startUrl = `${PROXY_URL}/start?${new URLSearchParams({
+        authUrl: data.url,
+        returnUrl,
+      }).toString()}`;
+
+      const hasilBrowser = await WebBrowser.openAuthSessionAsync(
+        startUrl,
+        returnUrl,
+      );
+      if (hasilBrowser.type !== "success" || !hasilBrowser.url) {
+        return { ok: false, message: "Login Google dibatalkan." };
+      }
+
+      const kode = new URL(hasilBrowser.url).searchParams.get("code");
+      if (!kode) {
+        return {
+          ok: false,
+          message: "Tidak ada kode otorisasi dari Google. Coba lagi.",
+        };
+ main
       }
     } finally {
       sedangMasuk.current = false;
