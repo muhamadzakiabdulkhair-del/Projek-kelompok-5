@@ -2,11 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomNav } from "@/components/bottom-nav";
 import { BrandLogo } from "@/components/brand-logo";
 import { ScreenHeader } from "@/components/screen-header";
+import { EditProfilSheet } from "@/components/edit-profil-sheet";
 import { UbahPasswordSheet } from "@/components/ubah-password-sheet";
 import {
   LOGIN_HREF,
@@ -79,6 +80,9 @@ export default function ProfilScreen() {
   const { belumDibaca } = useNotifikasi();
   const { profil, session, keluar } = useAuth();
   const [ubahPassword, setUbahPassword] = useState(false);
+  const [editProfil, setEditProfil] = useState(false);
+  // Foto yang gagal dimuat (URL rusak/bucket tidak publik) jatuh kembali ke inisial
+  const [fotoGagal, setFotoGagal] = useState<string | null>(null);
   
   // Akun yang masuk hanya lewat Google tidak punya kata sandi untuk diubah
   const punyaPassword = !!session?.user?.identities?.some((i) => i.provider === "email");
@@ -93,6 +97,8 @@ export default function ProfilScreen() {
         role: LABEL_PERAN[role],
       }
     : { ...PROFIL_CADANGAN[role], role: LABEL_PERAN[role] };
+
+  const fotoUrl = profil?.avatar_url && profil.avatar_url !== fotoGagal ? profil.avatar_url : null;
 
   const initials = profile.name
     .split(" ")
@@ -119,7 +125,16 @@ export default function ProfilScreen() {
         {/* Avatar & info utama */}
         <View style={styles.heroCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            {fotoUrl ? (
+              <Image
+                source={{ uri: fotoUrl }}
+                style={styles.avatarFoto}
+                accessibilityLabel="Foto profil"
+                onError={() => setFotoGagal(fotoUrl)}
+              />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </View>
           <Text style={styles.heroName}>{profile.name}</Text>
           <View style={styles.roleBadge}>
@@ -162,7 +177,11 @@ export default function ProfilScreen() {
         {/* Menu */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pengaturan</Text>
-          <MenuItem icon="create-outline" label="Edit Profil" />
+          <MenuItem
+            icon="create-outline"
+            label="Edit Profil"
+            onPress={() => setEditProfil(true)}
+          />
             {punyaPassword && (
               <MenuItem
                 icon="lock-closed-outline"
@@ -208,10 +227,17 @@ export default function ProfilScreen() {
       <BottomNav tabs={tabsForRole(role)} active="profil" />
 
       {profil ? (
-        <UbahPasswordSheet
-          visible={ubahPassword}
-          onTutup={() => setUbahPassword(false)}
-        />
+        <>
+          <EditProfilSheet
+            visible={editProfil}
+            onTutup={() => setEditProfil(false)}
+            onSukses={() => setEditProfil(false)}
+          />
+          <UbahPasswordSheet
+            visible={ubahPassword}
+            onTutup={() => setUbahPassword(false)}
+          />
+        </>
       ) : null}
     </SafeAreaView>
   );
@@ -247,7 +273,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
+  avatarFoto: { width: "100%", height: "100%" },
   avatarText: { fontSize: 28, fontWeight: "900", color: colors.white },
   heroName: { fontSize: font.title, fontWeight: "900", color: colors.ink },
   roleBadge: {
