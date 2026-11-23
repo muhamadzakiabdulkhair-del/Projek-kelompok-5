@@ -1,4 +1,5 @@
 # Projek-kelompok-5
+
 # VapeStore — Aplikasi Mobile E-Commerce
 
 ## 1. Deskripsi Aplikasi
@@ -10,7 +11,9 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ## 2. Daftar Screen dan Fitur UI
 
 ### 2.1 Dashboard
+
 **Fitur UI:**
+
 - Menampilkan banner aplikasi.
 - Menampilkan kategori produk.
 - Menyediakan kolom pencarian.
@@ -23,7 +26,9 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ![Dashboard](screenshots/dashboaard.png)
 
 ### 2.2 Katalog Produk
+
 **Fitur UI:**
+
 - Menampilkan daftar produk.
 - Menampilkan gambar, nama, dan harga produk.
 - Memudahkan pengguna memilih produk.
@@ -33,7 +38,9 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ![Katalog Produk](screenshots/katalogg.png)
 
 ### 2.3 Detail Produk
+
 **Fitur UI:**
+
 - Menampilkan informasi produk yang dipilih.
 - Menampilkan gambar, nama, dan harga produk.
 - Menyediakan tombol tambah ke keranjang jika sudah diimplementasikan.
@@ -43,7 +50,9 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ![Detail Produk](screenshots/detail-produk.png)
 
 ### 2.4 Keranjang
+
 **Fitur UI:**
+
 - Menampilkan produk yang telah ditambahkan.
 - Menampilkan informasi produk dalam keranjang.
 - Menyediakan kontrol jumlah atau penghapusan produk jika sudah tersedia.
@@ -53,7 +62,9 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ![Keranjang](screenshots/keranjang.png)
 
 ### 2.5 Login
+
 **Fitur UI:**
+
 - Menampilkan formulir masuk.
 - Menyediakan kolom input sesuai desain yang dibuat.
 
@@ -62,7 +73,9 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ![Login](screenshots/login.png)
 
 ### 2.6 Register
+
 **Fitur UI:**
+
 - Menampilkan formulir pendaftaran pengguna.
 
 **Screenshot:**
@@ -70,7 +83,9 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ![Register](screenshots/register.png)
 
 ### 2.7 Kelola Produk
+
 **Fitur UI:**
+
 - Menampilkan antarmuka pengelolaan produk.
 - Menyediakan kontrol pengelolaan produk sesuai fitur yang telah dibuat.
 
@@ -81,30 +96,37 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 ## 3. Cara Menjalankan Proyek
 
 ### Persyaratan
+
 - Node.js
 - npm
 - Expo
 - Perangkat Android atau emulator, jika diperlukan
 
 ### Langkah Menjalankan
+
 1. Clone repository proyek dari GitHub.
-2. Buka terminal pada folder proyek yang berisi `package.json`.
+2. Masuk ke subfolder aplikasi. Kode aplikasi ada di folder `Kelompok5`, bukan di folder utama:
+
+   ```bash
+   cd Kelompok5
+   ```
+
 3. Instal dependensi dengan perintah:
 
    ```bash
    npm install
    ```
 
-4. Jalankan proyek dengan perintah:
+4. Buat file `.env` di dalam folder `Kelompok5` yang berisi alamat dan kunci Supabase (minta ke anggota kelompok yang mengelola Supabase). File ini tidak ikut diunggah ke GitHub.
+5. Jalankan proyek dengan perintah:
 
    ```bash
    npx expo start
    ```
 
-5. Buka aplikasi menggunakan Expo Go atau emulator yang sesuai dengan konfigurasi proyek.
+6. Buka aplikasi menggunakan Expo Go atau emulator yang sesuai dengan konfigurasi proyek.
 
-**Catatan:** Pastikan terminal berada di direktori proyek yang benar sebelum menjalankan perintah.
-
+**Catatan:** Semua perintah `npm` dan `npx` dijalankan dari dalam folder `Kelompok5`, yaitu folder yang berisi `package.json`.
 
 ## 4. Informasi Pengembang
 
@@ -117,8 +139,8 @@ Aplikasi ini juga menyediakan fitur pengelolaan produk untuk mendukung pengelola
 3. Muhamad Zaki Abdul Khair: Login, register
 4. Faqih huddin SM: Pengelolaan Pesanan
 
-
 ## 5. Informasi Pengembang
+
 ![alt text](Kelompok5/screenshots/link_expo.go.png)
 › Scan the QR code above to open in Expo Go.
 › Metro: exp://10.170.23.44:8081
