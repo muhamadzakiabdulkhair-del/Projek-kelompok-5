@@ -15,6 +15,7 @@ import {
 } from "@/constants/navigation";
 import { colors, font, radius, spacing } from "@/constants/palette";
 import { useAuth } from "@/context/auth";
+import { useNotifikasi } from "@/context/notifikasi";
 
 const LABEL_PERAN: Record<Role, string> = {
   pelanggan: "Pelanggan",
@@ -37,9 +38,11 @@ type MenuItemProps = {
   label: string;
   onPress?: () => void;
   danger?: boolean;
+  /** Angka kecil berwarna merah di sebelah label (mis. jumlah notifikasi belum dibaca). */
+  badge?: number;
 };
 
-function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
+function MenuItem({ icon, label, onPress, danger, badge }: MenuItemProps) {
   return (
     <Pressable
       style={({ pressed }) => [
@@ -59,6 +62,11 @@ function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
       <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>
         {label}
       </Text>
+      {badge ? (
+        <View style={styles.menuBadge}>
+          <Text style={styles.menuBadgeText}>{badge > 99 ? "99+" : badge}</Text>
+        </View>
+      ) : null}
       {!danger && (
         <Ionicons name="chevron-forward" size={16} color={colors.placeholder} />
       )}
@@ -68,6 +76,7 @@ function MenuItem({ icon, label, onPress, danger }: MenuItemProps) {
 
 export default function ProfilScreen() {
   const router = useRouter();
+  const { belumDibaca } = useNotifikasi();
   const { profil, session, keluar } = useAuth();
   const [ubahPassword, setUbahPassword] = useState(false);
   
@@ -161,7 +170,12 @@ export default function ProfilScreen() {
                 onPress={() => setUbahPassword(true)}
               />
             )}
-          <MenuItem icon="notifications-outline" label="Notifikasi" />
+          <MenuItem
+            icon="notifications-outline"
+            label="Notifikasi"
+            badge={belumDibaca}
+            onPress={() => router.push("/notifikasi")}
+          />
         </View>
 
         {/* Tentang */}
@@ -209,6 +223,11 @@ export default function ProfilScreen() {
 }
 
 const styles = StyleSheet.create({
+  menuBadge: {
+    backgroundColor: colors.danger, borderRadius: 9, minWidth: 18, height: 18,
+    paddingHorizontal: 5, alignItems: "center", justifyContent: "center",
+  },
+  menuBadgeText: { color: colors.white, fontSize: 10, fontWeight: "800" },
   safe: { flex: 1, backgroundColor: colors.bg },
   content: {
     padding: spacing.lg,

@@ -4,11 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -20,6 +16,7 @@ import { AppButton } from "@/components/app-button";
 import { AppInput } from "@/components/app-input";
 import { BottomNav } from "@/components/bottom-nav";
 import { EmptyState } from "@/components/empty-state";
+import { ModalTengah } from "@/components/modal-tengah";
 import { ScreenHeader } from "@/components/screen-header";
 import { SearchBar } from "@/components/search-bar";
 import { tabsForRole } from "@/constants/navigation";
@@ -324,89 +321,80 @@ export function KelolaAkunScreen({ peran }: { peran: PeranAkun }) {
 
       <BottomNav tabs={tabsForRole("owner")} active="dashboard" />
 
-      {/* ── Formulir Tambah Karyawan ── */}
-      <Modal visible={formVisible} animationType="slide" transparent onRequestClose={tutupForm}>
-        <View style={styles.backdrop}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <View style={styles.sheet}>
-              <View style={styles.sheetHead}>
-                <Text style={styles.sheetTitle}>Tambah Karyawan</Text>
-                <Pressable onPress={tutupForm} hitSlop={10} accessibilityLabel="Tutup form">
-                  <Ionicons name="close" size={22} color={colors.ink} />
-                </Pressable>
-              </View>
+      {/* ── Formulir Tambah Karyawan (pop-up di tengah layar) ── */}
+      <ModalTengah
+        visible={formVisible}
+        judul="Tambah Karyawan"
+        onTutup={tutupForm}
+        tutupSaatKetukLuar={!saving}
+        footer={
+          <AppButton
+            label="Daftarkan Karyawan"
+            icon="person-add-outline"
+            onPress={simpan}
+            loading={saving}
+          />
+        }
+      >
+        {formError ? (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.errorBoxText}>{formError}</Text>
+          </View>
+        ) : null}
 
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                {formError ? (
-                  <View style={styles.errorBox}>
-                    <Ionicons name="alert-circle" size={16} color={colors.danger} />
-                    <Text style={styles.errorBoxText}>{formError}</Text>
-                  </View>
-                ) : null}
+        <AppInput
+          label="Nama Lengkap"
+          icon="person-outline"
+          placeholder="Contoh: Budi Santoso"
+          value={nama}
+          onChangeText={setNama}
+          error={errors.nama}
+          maxLength={100}
+          autoCapitalize="words"
+          editable={!saving}
+        />
+        <AppInput
+          label="Email"
+          icon="mail-outline"
+          placeholder="karyawan@email.com"
+          value={email}
+          onChangeText={setEmail}
+          error={errors.email}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!saving}
+        />
+        <AppInput
+          label="Password Awal"
+          icon="lock-closed-outline"
+          placeholder="Minimal 8 karakter"
+          value={password}
+          onChangeText={setPassword}
+          error={errors.password}
+          secureTextEntry
+          maxLength={72}
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!saving}
+        />
+        <AppInput
+          label="Konfirmasi Password"
+          icon="lock-closed-outline"
+          placeholder="Ulangi password"
+          value={konfirmasi}
+          onChangeText={setKonfirmasi}
+          error={errors.konfirmasi}
+          secureTextEntry
+          maxLength={72}
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!saving}
+        />
+      </ModalTengah>
 
-                <AppInput
-                  label="Nama Lengkap"
-                  icon="person-outline"
-                  placeholder="Contoh: Budi Santoso"
-                  value={nama}
-                  onChangeText={setNama}
-                  error={errors.nama}
-                  maxLength={100}
-                  autoCapitalize="words"
-                  editable={!saving}
-                />
-                <AppInput
-                  label="Email"
-                  icon="mail-outline"
-                  placeholder="karyawan@email.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  error={errors.email}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!saving}
-                />
-                <AppInput
-                  label="Password Awal"
-                  icon="lock-closed-outline"
-                  placeholder="Minimal 8 karakter"
-                  value={password}
-                  onChangeText={setPassword}
-                  error={errors.password}
-                  secureTextEntry
-                  maxLength={72}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!saving}
-                />
-                <AppInput
-                  label="Konfirmasi Password"
-                  icon="lock-closed-outline"
-                  placeholder="Ulangi password"
-                  value={konfirmasi}
-                  onChangeText={setKonfirmasi}
-                  error={errors.konfirmasi}
-                  secureTextEntry
-                  maxLength={72}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!saving}
-                />
-
-                <AppButton
-                  label="Daftarkan Karyawan"
-                  icon="person-add-outline"
-                  onPress={simpan}
-                  loading={saving}
-                />
-              </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-
-      {/* ── Sheet aksi per akun: edit, reset password, nonaktifkan/aktifkan ── */}
+      {/* ── Pop-up aksi per akun: edit, reset password, nonaktifkan/aktifkan ── */}
       <AkunSheet
         akun={dipilih}
         peran={peran}
@@ -461,16 +449,6 @@ const styles = StyleSheet.create({
   badge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   badgeText: { fontSize: 10, fontWeight: "800" },
 
-  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(10,34,24,0.55)" },
-  sheet: {
-    maxHeight: "92%", backgroundColor: colors.surface,
-    padding: 18, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-  },
-  sheetHead: {
-    flexDirection: "row", justifyContent: "space-between",
-    alignItems: "center", marginBottom: 14,
-  },
-  sheetTitle: { fontSize: 18, fontWeight: "900", color: colors.ink },
   errorBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: colors.dangerSoft, borderRadius: radius.md, padding: 10, marginBottom: 14,

@@ -88,35 +88,6 @@ export default function DashboardScreen() {
         <Ionicons name="cloud-outline" size={72} color="rgba(125,204,164,0.45)" />
       </View>
 
-      {/* Kategori */}
-      <FlatList
-        horizontal
-        data={["Semua", ...CATEGORIES]}
-        keyExtractor={(c) => c}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.catList}
-        style={styles.catFlat}
-        renderItem={({ item }) => {
-          const active = category === item;
-          return (
-            <Pressable style={styles.catItem} onPress={() => setCategory(item)}>
-              <View style={[styles.catIcon, active && styles.catIconActive]}>
-                {item === "Semua" ? (
-                  <Ionicons name="grid" size={22} color={active ? colors.white : colors.primary} />
-                ) : (
-                  <Image
-                    source={CATEGORY_IMAGES[item as keyof typeof CATEGORY_IMAGES]}
-                    style={styles.catImg}
-                    resizeMode="contain"
-                  />
-                )}
-              </View>
-              <Text style={[styles.catName, active && styles.catNameActive]}>{item}</Text>
-            </Pressable>
-          );
-        }}
-      />
-
       {/* Label section */}
       {loading ? (
         <View style={styles.loadingRow}>
@@ -164,23 +135,60 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <BrandLogo />
-        <Pressable
-          style={styles.loginBtn}
-          onPress={() => router.push("/login")}
-          accessibilityLabel="Masuk"
-        >
-          <Ionicons name="person" size={18} color={colors.white} />
-        </Pressable>
-      </View>
+      {/* Header, pencarian, dan kategori: satu blok tetap, daftar produk ter-scroll di bawahnya */}
+      <View style={styles.top}>
+        <View style={styles.header}>
+          <BrandLogo />
+          <Pressable
+            style={styles.loginBtn}
+            onPress={() => router.push("/login")}
+            accessibilityLabel="Masuk"
+          >
+            <Ionicons name="person" size={18} color={colors.white} />
+          </Pressable>
+        </View>
 
-      <View style={styles.searchWrap}>
-        <SearchBar
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Cari produk, kategori, atau merek..."
+        <View style={styles.searchWrap}>
+          <SearchBar
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Cari produk, kategori, atau merek..."
+          />
+        </View>
+
+        {/* Kategori — tetap di atas, tidak ikut ter-scroll */}
+        <FlatList
+          horizontal
+          data={["Semua", ...CATEGORIES]}
+          keyExtractor={(c) => c}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catList}
+          style={styles.catFlat}
+          renderItem={({ item }) => {
+            const active = category === item;
+            return (
+              <Pressable style={styles.catItem} onPress={() => setCategory(item)}>
+                <View
+                  style={[
+                    styles.catIcon,
+                    item === "Semua" && styles.catIconAll,
+                    active && (item === "Semua" ? styles.catIconAllActive : styles.catIconActive),
+                  ]}
+                >
+                  {item === "Semua" ? (
+                    <Ionicons name="grid" size={22} color={active ? colors.white : colors.primary} />
+                  ) : (
+                    <Image
+                      source={CATEGORY_IMAGES[item as keyof typeof CATEGORY_IMAGES]}
+                      style={styles.catImg}
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
+                <Text style={[styles.catName, active && styles.catNameActive]} numberOfLines={1}>{item}</Text>
+              </Pressable>
+            );
+          }}
         />
       </View>
 
@@ -221,16 +229,19 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
+  top: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingHorizontal: 16, paddingVertical: 10,
   },
   loginBtn: {
     width: 38, height: 38, borderRadius: 10, backgroundColor: colors.primary,
     alignItems: "center", justifyContent: "center",
   },
-  searchWrap: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
+  searchWrap: { paddingHorizontal: 14, paddingBottom: 10 },
   content: { padding: 14, paddingBottom: 24 },
   row: { justifyContent: "space-between", marginBottom: 12 },
   gridCard: { width: "48.5%" },
@@ -252,13 +263,18 @@ const styles = StyleSheet.create({
   bannerBtnText: { color: colors.white, fontSize: 12, fontWeight: "800" },
 
   catFlat: { flexGrow: 0 },
-  catList: { gap: 10, paddingBottom: 16 },
-  catItem: { alignItems: "center", gap: 6, width: 64 },
+  catList: { gap: 8, paddingHorizontal: 14, paddingTop: 2, paddingBottom: 10 },
+  catItem: { alignItems: "center", gap: 4, width: 64 },
+  // Semua kotak kategori seragam 52x52. Latar putih supaya foto produk (berlatar putih)
+  // menyatu, tidak tampak kotak putih di dalam kotak hijau. Aktif = bingkai hijau.
   catIcon: {
-    width: 52, height: 52, borderRadius: radius.lg, backgroundColor: colors.primarySoft,
-    alignItems: "center", justifyContent: "center", padding: 8,
+    width: 52, height: 52, borderRadius: radius.md, backgroundColor: colors.surface,
+    borderWidth: 1.5, borderColor: colors.borderInput,
+    alignItems: "center", justifyContent: "center", padding: 5, overflow: "hidden",
   },
-  catIconActive: { backgroundColor: colors.primary },
+  catIconActive: { borderColor: colors.primary, borderWidth: 2 },
+  catIconAll: { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft },
+  catIconAllActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   catImg: { width: "100%", height: "100%" },
   catName: { fontSize: 11, color: colors.muted, fontWeight: "600" },
   catNameActive: { color: colors.primary, fontWeight: "800" },

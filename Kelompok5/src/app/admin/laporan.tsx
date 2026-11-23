@@ -200,6 +200,7 @@ export default function LaporanScreen() {
             value={selected}
             onChange={setSelected}
             markedDates={marked}
+            clearable
             onViewChange={(y, m) => { setViewYear(y); setViewMonth(m); }}
           />
         </View>

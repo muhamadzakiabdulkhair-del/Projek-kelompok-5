@@ -4,7 +4,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -15,10 +14,12 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useDialog, useDialogLokal } from "@/components/app-dialog";
 import { AppButton } from "@/components/app-button";
 import { AppInput } from "@/components/app-input";
 import { BottomNav } from "@/components/bottom-nav";
@@ -58,28 +59,6 @@ type FormErrors = {
   stock?: string;
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function confirmStatusChange(
-  name: string,
-  activate: boolean,
-  onYes: () => void
-) {
-  const title = activate ? "Aktifkan Produk" : "Nonaktifkan Produk";
-  const message = activate
-    ? `Aktifkan kembali ${name}? Produk akan tampil di katalog pelanggan.`
-    : `Nonaktifkan ${name}? Produk tidak akan tampil di katalog pelanggan.`;
-
-  if (Platform.OS === "web") {
-    if (window.confirm(message)) onYes();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: "Batal", style: "cancel" },
-    { text: activate ? "Aktifkan" : "Nonaktifkan", onPress: onYes },
-  ]);
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function KelolaProdukScreen() {
@@ -87,6 +66,11 @@ export default function KelolaProdukScreen() {
   const { profil } = useAuth();
   const role = profil?.peran ?? "pelanggan";
   const isAdmin = role === "owner";
+  const dialog = useDialog();          // pop-up di halaman utama
+  const dialogForm = useDialogLokal(); // pop-up di dalam form (Modal)
+  const { height: layarTinggi } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const sheetMaxH = Math.round(layarTinggi * 0.9); // tinggi pasti, supaya header & tombol tidak keluar layar
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [products, setProducts] = useState<Product[]>([]);
@@ -115,11 +99,11 @@ export default function KelolaProdukScreen() {
       const data = await fetchProducts();
       setProducts(data);
     } catch (e: any) {
-      Alert.alert("Gagal memuat produk", e.message);
+      dialog.info({ judul: "Gagal memuat produk", pesan: e.message, tipe: "error" });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dialog]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
@@ -168,11 +152,20 @@ export default function KelolaProdukScreen() {
     return e;
   }
 
+  function tutupForm() {
+    if (saving) return; // jangan ditutup saat proses simpan berjalan
+    setFormVisible(false);
+  }
+
   // ── Image picker ──────────────────────────────────────────────────────────
   async function pilihFoto() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Izin diperlukan", "Izinkan akses galeri untuk memilih foto.");
+      dialogForm.info({
+        judul: "Izin diperlukan",
+        pesan: "Izinkan akses galeri untuk memilih foto.",
+        tipe: "peringatan",
+      });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -225,7 +218,7 @@ export default function KelolaProdukScreen() {
       }
       setFormVisible(false);
     } catch (err: any) {
-      Alert.alert("Gagal menyimpan", err.message);
+      dialogForm.info({ judul: "Gagal menyimpan", pesan: err.message, tipe: "error" });
     } finally {
       setSaving(false);
     }
@@ -235,18 +228,27 @@ export default function KelolaProdukScreen() {
   function toggleProductStatus(p: Product) {
     if (!isAdmin) return;
     const nextActive = !p.isActive;
-    confirmStatusChange(p.name, nextActive, async () => {
-      try {
-        if (nextActive) await activateProduct(p.id);
-        else await deactivateProduct(p.id);
-        setProducts((old) =>
-          old.map((item) =>
-            item.id === p.id ? { ...item, isActive: nextActive } : item
-          )
-        );
-      } catch (err: any) {
-        Alert.alert("Gagal mengubah status", err.message);
-      }
+    dialog.konfirmasi({
+      judul: nextActive ? "Aktifkan Produk" : "Nonaktifkan Produk",
+      pesan: nextActive
+        ? `Aktifkan kembali ${p.name}? Produk akan tampil di katalog pelanggan.`
+        : `Nonaktifkan ${p.name}? Produk tidak akan tampil di katalog pelanggan.`,
+      labelYa: nextActive ? "Aktifkan" : "Nonaktifkan",
+      bahaya: !nextActive,
+      tipe: nextActive ? "info" : "peringatan",
+      onYa: async () => {
+        try {
+          if (nextActive) await activateProduct(p.id);
+          else await deactivateProduct(p.id);
+          setProducts((old) =>
+            old.map((item) =>
+              item.id === p.id ? { ...item, isActive: nextActive } : item
+            )
+          );
+        } catch (err: any) {
+          dialog.info({ judul: "Gagal mengubah status", pesan: err.message, tipe: "error" });
+        }
+      },
     });
   }
 
@@ -386,21 +388,33 @@ export default function KelolaProdukScreen() {
         visible={isAdmin && formVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setFormVisible(false)}
+        onRequestClose={tutupForm}
       >
         <View style={styles.backdrop}>
+          {/* Ketuk area gelap di atas = batal */}
+          <Pressable style={styles.backdropTutup} onPress={tutupForm} accessibilityLabel="Tutup form" />
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { maxHeight: sheetMaxH }]}>
               <View style={styles.sheetHead}>
                 <Text style={styles.sheetTitle}>
                   {editingId ? "Edit Produk" : "Tambah Produk"}
                 </Text>
-                <Pressable onPress={() => setFormVisible(false)} hitSlop={10} accessibilityLabel="Tutup form">
-                  <Ionicons name="close" size={22} color={colors.ink} />
+                <Pressable
+                  onPress={tutupForm}
+                  hitSlop={10}
+                  style={styles.closeBtn}
+                  accessibilityLabel="Tutup form"
+                >
+                  <Ionicons name="close" size={20} color={colors.ink} />
                 </Pressable>
               </View>
 
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <ScrollView
+                style={styles.sheetScroll}
+                contentContainerStyle={styles.sheetScrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
                 {/* ── Foto produk ── */}
                 <Text style={styles.fieldLabel}>Foto Produk</Text>
                 <TouchableOpacity style={styles.fotoBox} onPress={pilihFoto} activeOpacity={0.75}>
@@ -410,13 +424,13 @@ export default function KelolaProdukScreen() {
                     <View style={styles.fotoExisting}>
                       <Image source={{ uri: editingFotoUrl }} style={styles.fotoPreview} resizeMode="cover" />
                       <View style={styles.fotoOverlay}>
-                        <Ionicons name="camera-outline" size={24} color={colors.white} />
+                        <Ionicons name="camera-outline" size={20} color={colors.white} />
                         <Text style={styles.fotoOverlayText}>Ganti foto</Text>
                       </View>
                     </View>
                   ) : (
                     <View style={styles.fotoPlaceholder}>
-                      <Ionicons name="camera-outline" size={32} color={colors.placeholder} />
+                      <Ionicons name="camera-outline" size={26} color={colors.placeholder} />
                       <Text style={styles.fotoPlaceholderText}>Ketuk untuk pilih foto</Text>
                       <Text style={styles.fotoPlaceholderSub}>(Opsional)</Text>
                     </View>
@@ -452,22 +466,26 @@ export default function KelolaProdukScreen() {
                   ))}
                 </View>
 
-                <AppInput
-                  label="Harga Jual (Rp)"
-                  placeholder="Contoh: 450000"
-                  keyboardType="numeric"
-                  value={price}
-                  onChangeText={setPrice}
-                  error={errors.price}
-                />
-                <AppInput
-                  label="Harga Beli / Modal (Rp)"
-                  placeholder="Contoh: 350000"
-                  keyboardType="numeric"
-                  value={purchasePrice}
-                  onChangeText={setPurchasePrice}
-                  error={errors.purchasePrice}
-                />
+                <View style={styles.rowDua}>
+                  <AppInput
+                    containerStyle={styles.kolom}
+                    label="Harga Jual (Rp)"
+                    placeholder="450000"
+                    keyboardType="numeric"
+                    value={price}
+                    onChangeText={setPrice}
+                    error={errors.price}
+                  />
+                  <AppInput
+                    containerStyle={styles.kolom}
+                    label="Harga Beli (Rp)"
+                    placeholder="350000"
+                    keyboardType="numeric"
+                    value={purchasePrice}
+                    onChangeText={setPurchasePrice}
+                    error={errors.purchasePrice}
+                  />
+                </View>
                 <AppInput
                   label="Stok"
                   placeholder="Jumlah stok"
@@ -476,15 +494,28 @@ export default function KelolaProdukScreen() {
                   onChangeText={setStock}
                   error={errors.stock}
                 />
+              </ScrollView>
 
+              {/* Tombol tetap di bawah, tidak ikut ter-scroll */}
+              <View style={[styles.sheetFooter, { paddingBottom: Math.max(insets.bottom, 12) }]}>
                 <AppButton
-                  label={saving ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Simpan Produk"}
+                  style={styles.footerBtn}
+                  variant="outline"
+                  label="Batal"
+                  disabled={saving}
+                  onPress={tutupForm}
+                />
+                <AppButton
+                  style={styles.footerBtn}
+                  label={editingId ? "Simpan" : "Simpan Produk"}
                   icon="checkmark"
+                  loading={saving}
                   onPress={save}
                 />
-              </ScrollView>
+              </View>
             </View>
           </KeyboardAvoidingView>
+          {dialogForm.element}
         </View>
       </Modal>
 
@@ -541,7 +572,7 @@ const styles = StyleSheet.create({
 
   // Foto picker
   fotoBox: {
-    height: 160,
+    height: 110,
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: colors.borderInput,
@@ -571,9 +602,24 @@ const styles = StyleSheet.create({
 
   backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(10,34,24,0.55)" },
   sheet: {
-    maxHeight: "92%", backgroundColor: colors.surface,
-    padding: 18, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: colors.surface,
+    paddingTop: 18, paddingHorizontal: 18,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
   },
+  backdropTutup: { flex: 1 },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: colors.tint, alignItems: "center", justifyContent: "center",
+  },
+  sheetScroll: { flexShrink: 1 },
+  sheetScrollContent: { paddingBottom: 8 },
+  sheetFooter: {
+    flexDirection: "row", gap: 10, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  footerBtn: { flex: 1 },
+  rowDua: { flexDirection: "row", gap: 10 },
+  kolom: { flex: 1 },
   sheetHead: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", marginBottom: 14,
