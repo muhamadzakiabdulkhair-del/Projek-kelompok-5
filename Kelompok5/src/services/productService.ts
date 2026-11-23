@@ -5,6 +5,7 @@
  * Kolom: id, nama, harga, harga_beli, deskripsi, kategori, stok, is_active, foto_url, created_at
  */
 
+import { Platform } from "react-native";
 import { supabase } from "../../lib/supabase";
 import type { Category, Product } from "@/data/products";
 import { CATEGORY_IMAGES } from "@/data/products";
@@ -71,7 +72,7 @@ export type CreateProductInput = {
 };
 
 export async function createProduct(
-  input: CreateProductInput
+  input: CreateProductInput,
 ): Promise<Product> {
   const { data, error } = await supabase
     .from("products")
@@ -91,7 +92,7 @@ export type UpdateProductInput = Partial<CreateProductInput> & {
 
 export async function updateProduct(
   id: string,
-  input: UpdateProductInput
+  input: UpdateProductInput,
 ): Promise<Product> {
   const { data, error } = await supabase
     .from("products")
@@ -134,24 +135,38 @@ export async function activateProduct(id: string): Promise<void> {
  * @returns    URL publik foto di Supabase Storage
  */
 export async function uploadFoto(uri: string): Promise<string> {
-  // Baca file sebagai base64 — pakai legacy API (SDK 54+)
-  const FileSystem = await import("expo-file-system/legacy");
-  const { decode }  = await import("base64-arraybuffer");
+  let body: ArrayBuffer | Blob;
+  let ext: string;
+  let contentType: string;
 
-  const ext      = uri.split(".").pop()?.toLowerCase() ?? "jpg";
+  if (Platform.OS === "web") {
+    // Web: uri berupa blob:/data:, tidak ada file:// yang bisa dibaca expo-file-system.
+    // Ambil isinya lewat fetch lalu kirim langsung sebagai Blob.
+    const blob = await (await fetch(uri)).blob();
+    contentType = blob.type || "image/jpeg";
+    ext = (contentType.split("/")[1] ?? "jpg")
+      .split("+")[0]
+      .replace("jpeg", "jpg");
+    body = blob;
+  } else {
+    // HP: baca file sebagai base64 — pakai legacy API (SDK 54+)
+    const FileSystem = await import("expo-file-system/legacy");
+    const { decode } = await import("base64-arraybuffer");
+
+    ext = uri.split(".").pop()?.toLowerCase() ?? "jpg";
+    contentType = `image/${ext === "jpg" ? "jpeg" : ext}`;
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    body = decode(base64);
+  }
+
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const path     = `produk/${fileName}`;
-
-  const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
+  const path = `produk/${fileName}`;
 
   const { error: uploadError } = await supabase.storage
     .from("produk")
-    .upload(path, decode(base64), {
-      contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
-      upsert: false,
-    });
+    .upload(path, body, { contentType, upsert: false });
 
   if (uploadError) throw new Error(uploadError.message);
 
@@ -167,7 +182,7 @@ export async function deleteFoto(publicUrl: string): Promise<void> {
   // Ambil path file di dalam bucket dari URL publik
   // Format URL: .../storage/v1/object/public/produk/<path>
   const marker = "/storage/v1/object/public/produk/";
-  const idx    = publicUrl.indexOf(marker);
+  const idx = publicUrl.indexOf(marker);
   if (idx === -1) return; // bukan URL storage kita, skip
 
   const filePath = publicUrl.slice(idx + marker.length);

@@ -14,30 +14,33 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AppButton }   from "@/components/app-button";
-import { useDialog }   from "@/components/app-dialog";
-import { EmptyState }  from "@/components/empty-state";
+import { AppButton } from "@/components/app-button";
+import { useDialog } from "@/components/app-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
-import { QtyStepper }  from "@/components/qty-stepper";
+import { QtyStepper } from "@/components/qty-stepper";
 import { ScreenHeader } from "@/components/screen-header";
 import { colors, radius } from "@/constants/palette";
 import { useCart } from "@/context/cart";
 import { useBelanja } from "@/hooks/use-belanja";
 import { formatRupiah, type Product } from "@/data/products";
 import { fetchProducts } from "@/services/productService";
+import { useAuth } from "@/context/auth";
+import { catatInteraksi } from "@/services/interactionService";
 
 export default function ProdukDetailScreen() {
-  const router       = useRouter();
-  const { id }       = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { count } = useCart();
   const { tambah } = useBelanja();
+  const { profil } = useAuth();
   const dialog = useDialog();
   const [qty, setQty] = useState(1);
 
   // ── Fetch produk dari Supabase ────────────────────────────────────────────
-  const [product,  setProduct]  = useState<Product | null>(null);
-  const [related,  setRelated]  = useState<Product[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [related, setRelated] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
@@ -50,7 +53,12 @@ export default function ProdukDetailScreen() {
         if (found) {
           setRelated(
             all
-              .filter((p) => p.category === found.category && p.id !== id && p.isActive !== false)
+              .filter(
+                (p) =>
+                  p.category === found.category &&
+                  p.id !== id &&
+                  p.isActive !== false,
+              )
               .slice(0, 6),
           );
         }
@@ -61,6 +69,12 @@ export default function ProdukDetailScreen() {
       }
     })();
   }, [id]);
+  // Catat "view" untuk model rekomendasi (hanya pelanggan yang login)
+  const productId = product?.id;
+  const peran = profil?.peran;
+  useEffect(() => {
+    if (productId && peran === "pelanggan") catatInteraksi(productId, "view");
+  }, [productId, peran]);
 
   // ── Cart button (kanan header) ────────────────────────────────────────────
   const cartButton = (
@@ -110,14 +124,18 @@ export default function ProdukDetailScreen() {
   }
 
   // ── Derived values ────────────────────────────────────────────────────────
-  const soldOut   = product.stock <= 0;
-  const lowStock  = !soldOut && product.stock <= 5;
-  const stockColor = soldOut ? colors.danger : lowStock ? colors.warning : colors.primary;
+  const soldOut = product.stock <= 0;
+  const lowStock = !soldOut && product.stock <= 5;
+  const stockColor = soldOut
+    ? colors.danger
+    : lowStock
+      ? colors.warning
+      : colors.primary;
   const stockLabel = soldOut
     ? "Stok habis"
     : lowStock
-    ? `Stok menipis · ${product.stock}`
-    : `Stok tersedia · ${product.stock}`;
+      ? `Stok menipis · ${product.stock}`
+      : `Stok tersedia · ${product.stock}`;
 
   function addToCart() {
     if (!tambah(product!, qty)) return; // tamu diarahkan login, staf ditolak
@@ -134,7 +152,11 @@ export default function ProdukDetailScreen() {
 
   // ── Gambar: foto dari Storage jika ada, fallback ke aset lokal ────────────
   const heroContent = product.fotoUrl ? (
-    <Image source={{ uri: product.fotoUrl }} style={styles.heroImg} resizeMode="cover" />
+    <Image
+      source={{ uri: product.fotoUrl }}
+      style={styles.heroImg}
+      resizeMode="cover"
+    />
   ) : (
     <Image source={product.image} style={styles.heroImg} resizeMode="contain" />
   );
@@ -149,9 +171,17 @@ export default function ProdukDetailScreen() {
         right={cartButton}
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Hero foto */}
-        <View style={[styles.hero, product.fotoUrl ? styles.heroCover : styles.heroLocal]}>
+        <View
+          style={[
+            styles.hero,
+            product.fotoUrl ? styles.heroCover : styles.heroLocal,
+          ]}
+        >
           {heroContent}
         </View>
 
@@ -175,7 +205,9 @@ export default function ProdukDetailScreen() {
                 size={14}
                 color={stockColor}
               />
-              <Text style={[styles.stockText, { color: stockColor }]}>{stockLabel}</Text>
+              <Text style={[styles.stockText, { color: stockColor }]}>
+                {stockLabel}
+              </Text>
             </View>
           </View>
         </View>
@@ -194,7 +226,9 @@ export default function ProdukDetailScreen() {
           {[
             ["Kategori", product.category],
             ["Jenis", product.sub],
-            ...(product.rating > 0 ? [["Rating", `${product.rating} / 5`]] : []),
+            ...(product.rating > 0
+              ? [["Rating", `${product.rating} / 5`]]
+              : []),
           ].map(([k, v]) => (
             <View key={k} style={styles.specRow}>
               <Text style={styles.specKey}>{k}</Text>
@@ -206,7 +240,9 @@ export default function ProdukDetailScreen() {
         {/* Produk serupa */}
         {related.length > 0 && (
           <View>
-            <Text style={[styles.heading, styles.relatedTitle]}>Produk Serupa</Text>
+            <Text style={[styles.heading, styles.relatedTitle]}>
+              Produk Serupa
+            </Text>
             <FlatList
               horizontal
               data={related}
@@ -218,7 +254,10 @@ export default function ProdukDetailScreen() {
                   product={item}
                   style={styles.relatedCard}
                   onPress={() =>
-                    router.push({ pathname: "/produk/[id]", params: { id: item.id } })
+                    router.push({
+                      pathname: "/produk/[id]",
+                      params: { id: item.id },
+                    })
                   }
                 />
               )}
@@ -228,7 +267,11 @@ export default function ProdukDetailScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <QtyStepper value={qty} onChange={setQty} max={Math.max(1, product.stock)} />
+        <QtyStepper
+          value={qty}
+          onChange={setQty}
+          max={Math.max(1, product.stock)}
+        />
         <AppButton
           label={soldOut ? "Stok habis" : "Tambah ke Keranjang"}
           icon="cart"
@@ -242,65 +285,109 @@ export default function ProdukDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 14, paddingBottom: 20, gap: 12 },
-  center:  { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 13, color: colors.muted },
 
   cartBtn: {
-    width: 38, height: 38, borderRadius: 10, backgroundColor: colors.bg,
-    alignItems: "center", justifyContent: "center",
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: colors.bg,
+    alignItems: "center",
+    justifyContent: "center",
   },
   badge: {
-    position: "absolute", top: -4, right: -4, backgroundColor: colors.danger,
-    borderRadius: 8, minWidth: 16, height: 16, paddingHorizontal: 3,
-    alignItems: "center", justifyContent: "center",
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    alignItems: "center",
+    justifyContent: "center",
   },
   badgeText: { color: colors.white, fontSize: 9, fontWeight: "800" },
 
   hero: {
-    height: 220, backgroundColor: colors.tint, borderRadius: radius.lg,
-    alignItems: "center", justifyContent: "center", padding: 16, overflow: "hidden",
+    height: 220,
+    backgroundColor: colors.tint,
+    borderRadius: radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    overflow: "hidden",
   },
   // Foto bawaan berlatar putih: samakan latar kartu agar tidak tampak kotak di dalam kotak
-  heroLocal: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  heroCover: { padding: 0 },   // foto dari Storage: full cover tanpa padding
+  heroLocal: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  heroCover: { padding: 0 }, // foto dari Storage: full cover tanpa padding
   heroImg: { width: "100%", height: "100%" },
 
   card: {
-    backgroundColor: colors.surface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border, padding: 16, gap: 6,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    gap: 6,
   },
-  sub:     { fontSize: 12, color: colors.placeholder },
-  name:    { fontSize: 22, fontWeight: "900", color: colors.ink },
+  sub: { fontSize: 12, color: colors.placeholder },
+  name: { fontSize: 22, fontWeight: "900", color: colors.ink },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  rating:  { fontSize: 13, fontWeight: "800", color: colors.star },
+  rating: { fontSize: 13, fontWeight: "800", color: colors.star },
   reviews: { fontSize: 12, color: colors.muted },
-  priceRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 },
-  price:   { fontSize: 24, fontWeight: "900", color: colors.primary },
+  priceRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginTop: 4,
+  },
+  price: { fontSize: 24, fontWeight: "900", color: colors.primary },
   stockPill: {
-    alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5,
-    borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   stockText: { fontSize: 12, fontWeight: "700" },
 
   heading: { fontSize: 15, fontWeight: "800", color: colors.ink },
-  body:    { fontSize: 13, color: colors.muted, lineHeight: 20 },
+  body: { fontSize: 13, color: colors.muted, lineHeight: 20 },
   specRow: {
-    flexDirection: "row", justifyContent: "space-between",
-    paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   specKey: { fontSize: 13, color: colors.muted },
   specVal: { fontSize: 13, fontWeight: "700", color: colors.ink },
 
   relatedTitle: { marginBottom: 10 },
-  relatedList:  { gap: 10 },
-  relatedCard:  { width: 160 },
+  relatedList: { gap: 10 },
+  relatedCard: { width: 160 },
 
   footer: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    padding: 12, backgroundColor: colors.surface,
-    borderTopWidth: 1, borderTopColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   footerBtn: { flex: 1 },
 });

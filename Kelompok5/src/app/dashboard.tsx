@@ -13,24 +13,25 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BottomNav }   from "@/components/bottom-nav";
-import { BrandLogo }   from "@/components/brand-logo";
-import { EmptyState }  from "@/components/empty-state";
+import { BottomNav } from "@/components/bottom-nav";
+import { BrandLogo } from "@/components/brand-logo";
+import { EmptyState } from "@/components/empty-state";
 import { ProductCard } from "@/components/product-card";
-import { SearchBar }   from "@/components/search-bar";
+import { SearchBar } from "@/components/search-bar";
 import { tabsForRole } from "@/constants/navigation";
 import { colors, radius } from "@/constants/palette";
-import { useBelanja }  from "@/hooks/use-belanja";
+import { useBelanja } from "@/hooks/use-belanja";
 import { CATEGORIES, CATEGORY_IMAGES, type Product } from "@/data/products";
 import { fetchProducts } from "@/services/productService";
+import { RekomendasiSection } from "@/components/rekomendasi-section";
 
 export default function DashboardScreen() {
-  const router    = useRouter();
+  const router = useRouter();
   const { tambah, tampilkanTombol } = useBelanja();
 
   // ── Data dari Supabase ────────────────────────────────────────────────────
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -46,10 +47,12 @@ export default function DashboardScreen() {
     }
   }, []);
 
-  useEffect(() => { loadProducts(); }, [loadProducts]);
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   // ── Filter lokal (search + kategori) ─────────────────────────────────────
-  const [search,   setSearch]   = useState("");
+  const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("Semua");
 
   const filtered = useMemo(
@@ -81,13 +84,26 @@ export default function DashboardScreen() {
         <View style={styles.bannerText}>
           <Text style={styles.bannerEye}>POD SYSTEM</Text>
           <Text style={styles.bannerTitle}>{"RASA LEBIH\nNIKMAT"}</Text>
-          <Pressable style={styles.bannerBtn} onPress={() => setCategory("Pod")}>
+          <Pressable
+            style={styles.bannerBtn}
+            onPress={() => setCategory("Pod")}
+          >
             <Text style={styles.bannerBtnText}>Belanja Sekarang</Text>
           </Pressable>
         </View>
-        <Ionicons name="cloud-outline" size={72} color="rgba(125,204,164,0.45)" />
+        <Ionicons
+          name="cloud-outline"
+          size={72}
+          color="rgba(125,204,164,0.45)"
+        />
       </View>
-
+      {category === "Semua" && search.trim() === "" ? (
+        <RekomendasiSection
+          products={products}
+          onOpen={openDetail}
+          onAdd={tampilkanTombol ? (p) => tambah(p) : undefined}
+        />
+      ) : null}
       {/* Label section */}
       {loading ? (
         <View style={styles.loadingRow}>
@@ -106,7 +122,8 @@ export default function DashboardScreen() {
   );
 
   // ── List footer (produk pilihan) ──────────────────────────────────────────
-  const showPicks = category === "Semua" && search.trim() === "" && topRated.length > 0;
+  const showPicks =
+    category === "Semua" && search.trim() === "" && topRated.length > 0;
   const listFooter = showPicks ? (
     <View>
       <View style={styles.sectionRow}>
@@ -167,25 +184,42 @@ export default function DashboardScreen() {
           renderItem={({ item }) => {
             const active = category === item;
             return (
-              <Pressable style={styles.catItem} onPress={() => setCategory(item)}>
+              <Pressable
+                style={styles.catItem}
+                onPress={() => setCategory(item)}
+              >
                 <View
                   style={[
                     styles.catIcon,
                     item === "Semua" && styles.catIconAll,
-                    active && (item === "Semua" ? styles.catIconAllActive : styles.catIconActive),
+                    active &&
+                      (item === "Semua"
+                        ? styles.catIconAllActive
+                        : styles.catIconActive),
                   ]}
                 >
                   {item === "Semua" ? (
-                    <Ionicons name="grid" size={22} color={active ? colors.white : colors.primary} />
+                    <Ionicons
+                      name="grid"
+                      size={22}
+                      color={active ? colors.white : colors.primary}
+                    />
                   ) : (
                     <Image
-                      source={CATEGORY_IMAGES[item as keyof typeof CATEGORY_IMAGES]}
+                      source={
+                        CATEGORY_IMAGES[item as keyof typeof CATEGORY_IMAGES]
+                      }
                       style={styles.catImg}
                       resizeMode="contain"
                     />
                   )}
                 </View>
-                <Text style={[styles.catName, active && styles.catNameActive]} numberOfLines={1}>{item}</Text>
+                <Text
+                  style={[styles.catName, active && styles.catNameActive]}
+                  numberOfLines={1}
+                >
+                  {item}
+                </Text>
               </Pressable>
             );
           }}
@@ -208,7 +242,10 @@ export default function DashboardScreen() {
               title="Produk tidak ditemukan"
               message="Coba kata kunci atau kategori lain."
               actionLabel="Reset pencarian"
-              onAction={() => { setSearch(""); setCategory("Semua"); }}
+              onAction={() => {
+                setSearch("");
+                setCategory("Semua");
+              }}
             />
           )
         }
@@ -231,34 +268,68 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   top: {
     backgroundColor: colors.surface,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   loginBtn: {
-    width: 38, height: 38, borderRadius: 10, backgroundColor: colors.primary,
-    alignItems: "center", justifyContent: "center",
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
   searchWrap: { paddingHorizontal: 14, paddingBottom: 10 },
   content: { padding: 14, paddingBottom: 24 },
   row: { justifyContent: "space-between", marginBottom: 12 },
   gridCard: { width: "48.5%" },
 
-  loadingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12, marginTop: 4 },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+    marginTop: 4,
+  },
   loadingText: { fontSize: 13, color: colors.muted },
 
   banner: {
-    borderRadius: 18, backgroundColor: "#073F2E", flexDirection: "row",
-    alignItems: "center", padding: 20, marginBottom: 16, minHeight: 150,
+    borderRadius: 18,
+    backgroundColor: "#073F2E",
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    marginBottom: 16,
+    minHeight: 150,
   },
   bannerText: { flex: 1 },
-  bannerEye: { color: "#7DCCA4", fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 6 },
-  bannerTitle: { color: colors.white, fontSize: 26, fontWeight: "900", lineHeight: 30, marginBottom: 14 },
+  bannerEye: {
+    color: "#7DCCA4",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  bannerTitle: {
+    color: colors.white,
+    fontSize: 26,
+    fontWeight: "900",
+    lineHeight: 30,
+    marginBottom: 14,
+  },
   bannerBtn: {
-    alignSelf: "flex-start", backgroundColor: colors.primary,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+    alignSelf: "flex-start",
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   bannerBtnText: { color: colors.white, fontSize: 12, fontWeight: "800" },
 
@@ -268,18 +339,36 @@ const styles = StyleSheet.create({
   // Semua kotak kategori seragam 52x52. Latar putih supaya foto produk (berlatar putih)
   // menyatu, tidak tampak kotak putih di dalam kotak hijau. Aktif = bingkai hijau.
   catIcon: {
-    width: 52, height: 52, borderRadius: radius.md, backgroundColor: colors.surface,
-    borderWidth: 1.5, borderColor: colors.borderInput,
-    alignItems: "center", justifyContent: "center", padding: 5, overflow: "hidden",
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 5,
+    overflow: "hidden",
   },
   catIconActive: { borderColor: colors.primary, borderWidth: 2 },
-  catIconAll: { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft },
-  catIconAllActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  catIconAll: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primarySoft,
+  },
+  catIconAllActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
   catImg: { width: "100%", height: "100%" },
   catName: { fontSize: 11, color: colors.muted, fontWeight: "600" },
   catNameActive: { color: colors.primary, fontWeight: "800" },
 
-  sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  sectionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   sectionTitle: { fontSize: 17, fontWeight: "800", color: colors.ink },
   count: { fontSize: 12, color: colors.muted, fontWeight: "600" },
 

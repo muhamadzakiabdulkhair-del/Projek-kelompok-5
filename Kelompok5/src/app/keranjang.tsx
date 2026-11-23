@@ -23,6 +23,7 @@ import { useCart, type CartLine } from "@/context/cart";
 import { useOrders } from "@/context/orders";
 import { type Order } from "@/data/orders";
 import { formatRupiah } from "@/data/products";
+import { catatInteraksi } from "@/services/interactionService";
 
 const ONGKOS_KIRIM = 15_000;
 
@@ -39,7 +40,11 @@ const PAYMENT_OPTIONS: {
 ];
 
 // ─── Item baris keranjang ──────────────────────────────────────────────────
-function CartItemRow({ line, onSetQty, onRemove }: {
+function CartItemRow({
+  line,
+  onSetQty,
+  onRemove,
+}: {
   line: CartLine;
   onSetQty: (qty: number) => void;
   onRemove: () => void;
@@ -51,18 +56,22 @@ function CartItemRow({ line, onSetQty, onRemove }: {
     <View style={styles.card}>
       {/* Gambar produk */}
       <View style={styles.thumb}>
-        <Image source={product.image} style={styles.thumbImg} resizeMode="contain" />
+        <Image
+          source={product.image}
+          style={styles.thumbImg}
+          resizeMode="contain"
+        />
       </View>
 
       {/* Info produk */}
       <View style={styles.info}>
-        <Text style={styles.itemName} numberOfLines={2}>{product.name}</Text>
+        <Text style={styles.itemName} numberOfLines={2}>
+          {product.name}
+        </Text>
         <Text style={styles.itemSub}>{product.sub}</Text>
         <Text style={styles.itemPrice}>{formatRupiah(product.price)}</Text>
 
-        {soldOut && (
-          <Text style={styles.soldOutBadge}>Stok habis</Text>
-        )}
+        {soldOut && <Text style={styles.soldOutBadge}>Stok habis</Text>}
       </View>
 
       {/* Kontrol kanan */}
@@ -137,7 +146,11 @@ export default function KeranjangScreen() {
   // Buat objek Order dari isi keranjang saat ini
   function buildOrder(): Order {
     const now = new Date();
-    const tgl = now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+    const tgl = now.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
     const invoiceId = "INV-" + Date.now().toString().slice(-4);
     const itemsLabel = lines
       .map((l) => `${l.product.name} ×${l.qty}`)
@@ -161,11 +174,13 @@ export default function KeranjangScreen() {
   const handleCheckout = async () => {
     if (lines.length === 0) return;
 
-    const payLabel = PAYMENT_OPTIONS.find((p) => p.key === payment)?.label ?? payment;
+    const payLabel =
+      PAYMENT_OPTIONS.find((p) => p.key === payment)?.label ?? payment;
 
     try {
       setLoading(true);
       const saved = await addOrder(buildOrder()); // id (INV-xxxx) dari database
+      lines.forEach((l) => catatInteraksi(l.product.id, "beli"));
       setLoading(false);
 
       dialog.konfirmasi({
@@ -183,7 +198,11 @@ export default function KeranjangScreen() {
     } catch (err: any) {
       setLoading(false);
       const msg = err?.message ?? "Terjadi kesalahan.";
-      dialog.info({ judul: "Gagal membuat pesanan", pesan: msg, tipe: "error" });
+      dialog.info({
+        judul: "Gagal membuat pesanan",
+        pesan: msg,
+        tipe: "error",
+      });
     }
   };
 
@@ -242,11 +261,7 @@ export default function KeranjangScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScreenHeader
-        title="Keranjang"
-        back
-        right={headerRight}
-      />
+      <ScreenHeader title="Keranjang" back right={headerRight} />
 
       <FlatList
         data={lines}
@@ -318,7 +333,12 @@ const styles = StyleSheet.create({
   info: { flex: 1, gap: 3 },
   itemName: { fontSize: font.body, fontWeight: "800", color: colors.ink },
   itemSub: { fontSize: font.small, color: colors.placeholder },
-  itemPrice: { fontSize: font.body, fontWeight: "800", color: colors.primary, marginTop: 4 },
+  itemPrice: {
+    fontSize: font.body,
+    fontWeight: "800",
+    color: colors.primary,
+    marginTop: 4,
+  },
   soldOutBadge: {
     alignSelf: "flex-start",
     marginTop: 4,
@@ -354,7 +374,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
   },
-  sectionTitle: { fontSize: font.heading, fontWeight: "800", color: colors.ink, marginBottom: 4 },
+  sectionTitle: {
+    fontSize: font.heading,
+    fontWeight: "800",
+    color: colors.ink,
+    marginBottom: 4,
+  },
 
   // Metode pembayaran
   payRow: {
@@ -380,7 +405,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   payIconBoxActive: { backgroundColor: colors.primary },
-  payLabel: { flex: 1, fontSize: font.body, color: colors.muted, fontWeight: "600" },
+  payLabel: {
+    flex: 1,
+    fontSize: font.body,
+    color: colors.muted,
+    fontWeight: "600",
+  },
   payLabelActive: { color: colors.primary, fontWeight: "800" },
   radio: {
     width: 20,
@@ -401,7 +431,11 @@ const styles = StyleSheet.create({
   },
 
   // Ringkasan harga
-  summaryRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   summaryLabel: { fontSize: font.body, color: colors.muted },
   summaryValue: { fontSize: font.body, color: colors.muted, fontWeight: "600" },
   totalRow: {
@@ -411,9 +445,12 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   totalLabel: { fontSize: font.heading, fontWeight: "900", color: colors.ink },
-  totalValue: { fontSize: font.heading, fontWeight: "900", color: colors.primary },
+  totalValue: {
+    fontSize: font.heading,
+    fontWeight: "900",
+    color: colors.primary,
+  },
 
   // Tombol
   checkoutBtn: { marginBottom: spacing.sm },
 });
-
