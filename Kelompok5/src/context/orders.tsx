@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useAuth } from '@/context/auth';
 import type { Order, OrderStatus } from '@/data/orders';
 import {
   createOrder,
@@ -31,6 +32,8 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
 const OrdersContext = createContext<OrdersValue | null>(null);
 
 export function OrdersProvider({ children }: { children: ReactNode }) {
+  const { session } = useAuth();
+  const uid = session?.user?.id ?? null;
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +51,12 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Ganti akun / keluar: kosongkan dulu supaya pesanan akun sebelumnya tidak sempat terlihat.
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    setOrders([]);
+    setError(null);
+    if (uid) refresh();
+  }, [uid, refresh]);
 
   // Simpan pesanan baru. Melempar error kalau gagal, supaya layar bisa menampilkannya.
   const addOrder = useCallback(async (order: NewOrder) => {
