@@ -157,3 +157,118 @@ Tujuannya memastikan setiap file di bucket produk dipakai oleh satu produk, dan 
 - bukti:
 
 ![alt text](hasil_tes_uji1/uji4_psnn.gif)
+
+
+# Hasil Uji Coba End-to-End (Kelola Karyawan)
+
+Halaman: **Owner → Kelola Karyawan** (`/admin/karyawan`). Karyawan baru dibuat lewat Edge Function
+`buat-karyawan`. Nonaktifkan dan reset password lewat Edge Function `kelola-akun`. Pemeriksaan owner dilakukan
+di server.
+
+## Uji K1: Read (daftar dan pencarian)
+- Login sebagai **owner**, buka **Kelola Karyawan**.
+- Ketik sebagian nama atau email di kotak "Cari nama atau email...".
+
+- Lulus kalau daftar karyawan tampil (nama, email, status Aktif/Nonaktif) dan pencarian menyaring daftar.
+
+- bukti:
+![alt text](iPhone-14-PRO-localhost-muqw65gl_7-rs5.gif)
+
+
+
+## Uji K2: Create (tambah karyawan)
+- Tekan **Daftarkan Karyawan**, isi Nama Lengkap, Email, Password Awal (minimal 8 karakter), dan Konfirmasi Password, lalu simpan.
+
+- bukti:
+![alt text](iPhone-14-PRO-localhost-fv84cn-rqjx4l4.gif)
+
+-bukti table ![alt text](image-3.png)
+
+## Uji K3: Karyawan baru bisa login
+- Keluar dari akun owner, lalu login dengan email dan password karyawan baru. Tidak perlu verifikasi email karena akun dibuat sudah terverifikasi oleh server.
+- Lulus kalau login berhasil dan masuk ke dashboard **karyawan**.
+- bukti:
+![alt text](iPhone-14-PRO-localhost-dtp_0l5yrcfd9c.gif)
+
+## Uji K4: Update (edit nama dan telepon)
+- Ketuk karyawan di daftar, pilih **Edit Data**, ubah nama dan nomor telepon, lalu **Simpan**.
+- Lulus kalau muncul "Data (nama) berhasil diperbarui." dan data di daftar serta di tabel `profiles` (Table Editor) ikut berubah.
+- bukti : 
+![alt text](iPhone-14-PRO-localhost-9pffxc0rcsu6b5.gif)
+
+- bukti tabel : ![alt text](image-4.png)
+
+## Uji K5: Reset password
+- Ketuk karyawan, pilih **Reset Password**, isi password baru dan konfirmasinya, lalu **Reset**.
+- bukti : 
+![alt text](iPhone-14-PRO-localhost-r-bca9990wl767.gif)
+
+## Uji K6: Nonaktifkan akun
+- Ketuk karyawan, pilih **Nonaktifkan Akun**, lalu konfirmasi di pop-up.
+- bukti:
+![alt text](<Screen Recording 2026-11-23 094522.gif>)
+
+## Uji K7: Login dengan akun yang di nonaktifkan
+- login sebagai karyawan yang akunnya di nonaktifkan
+- bukti :
+![alt text](image-5.png)
+
+## Uji K8: Aktifkan kembali
+- Ketuk karyawan yang nonaktif, pilih **Aktifkan Akun**, lalu konfirmasi.
+- Lulus kalau status kembali **Aktif** dan akun itu bisa login lagi.
+- bukti:
+![alt text](<Screen Recording 2026-11-23 095623.gif>)
+
+# Hasil Uji Coba End-to-End (Kelola Pelanggan)
+
+## Uji P1: Read (daftar dan pencarian)
+- Login sebagai **owner**, buka **Kelola Pelanggan**, lalu coba kotak pencarian.
+- bukti :
+![alt text](<Screen Recording 2026-11-23 095623-1.gif>)
+
+## Uji P2: Update (edit nama dan telepon)
+- Ketuk pelanggan, pilih **Edit Data**, ubah nama dan telepon, lalu **Simpan**
+- bukti : 
+![alt text](<Screen Recording 2026-11-23 100623.gif>)
+
+
+## Uji P3: Reset password pelanggan
+- Ketuk pelanggan, pilih **Reset Password**, lalu isi password baru.
+- bukti : 
+![alt text](<Screen Recording 2026-11-23 100912.gif>)
+
+## Uji P4: uji akun nonaktif dan aktif
+- login sebagai owner lalu nonaktifkana akun pelanggan
+![alt text](image-6.png)
+![alt text](image-7.png)
+![alt text](image-8.png)
+- login sebagai pelanggan yang di nonaktifkan
+![alt text](image-9.png)
+- login sebagai owner lalu aktifkan pelanggan
+![alt text](image-10.png)
+![alt text](image-11.png)
+![alt text](image-12.png)
+- login sebagai pelanggan yang akunnya sudah di aktifkan
+![alt text](<Screen Recording 2026-11-23 102812.gif>)
+
+
+# Hasil Uji Coba End-to-End (Edit Profil dan Foto Profil)
+
+## Uji E1: Buka form Edit Profil lalu Update nama dan telepon
+ Login (uji bebas sebagai **owner**, **karyawan**, dan **pelanggan**), buka tab **Profil**, lalu ketuk **Edit Profil**.
+
+- Ubah nama dan nomor telepon, lalu **Simpan**.
+ - bukti :
+![alt text](<Screen Recording 2026-11-23 103550.gif>)
+- bukti tabel :
+ ![alt text](image-13.png)
+
+ # Uji E2: Hapus foto
+- Buka Edit Profil, ketuk **Hapus** di sebelah foto, lalu **Simpan**.
+- bukti sebelum hapus :
+![alt text](image-14.png)
+
+- sesudah hapus
+![alt text](image-15.png)
+![alt text](image-16.png)
+![alt text](image-17.png)
