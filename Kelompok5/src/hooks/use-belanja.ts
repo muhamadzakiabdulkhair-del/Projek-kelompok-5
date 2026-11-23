@@ -5,6 +5,7 @@ import { LOGIN_HREF } from "@/constants/navigation";
 import { useAuth } from "@/context/auth";
 import { useCart } from "@/context/cart";
 import type { Product } from "@/data/products";
+import { catatInteraksi } from "@/services/interactionService";
 
 // Hanya pelanggan yang sudah masuk yang boleh memasukkan produk ke keranjang.
 // Tamu (belum login) diarahkan ke /login, owner/karyawan diberi tahu.
@@ -35,12 +36,18 @@ export function useBelanja() {
       }
 
       if (profil.peran !== "pelanggan") {
-        const pesan = "Akun owner dan karyawan tidak bisa berbelanja. Gunakan akun pelanggan.";
-        dialog.info({ judul: "Tidak bisa berbelanja", pesan, tipe: "peringatan" });
+        const pesan =
+          "Akun owner dan karyawan tidak bisa berbelanja. Gunakan akun pelanggan.";
+        dialog.info({
+          judul: "Tidak bisa berbelanja",
+          pesan,
+          tipe: "peringatan",
+        });
         return false;
       }
 
       add(product, qty);
+      catatInteraksi(product.id, "cart");
       return true;
     },
     [profil, add, router, dialog],
