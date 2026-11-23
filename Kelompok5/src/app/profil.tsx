@@ -203,8 +203,13 @@ export default function ProfilScreen() {
           <MenuItem
             icon="information-circle-outline"
             label="Tentang VapeStore"
+            onPress={() => router.push("/tentang")}
           />
-          <MenuItem icon="document-text-outline" label="Syarat & Ketentuan" />
+          <MenuItem
+            icon="document-text-outline"
+            label="Syarat & Ketentuan"
+            onPress={() => router.push("/syarat")}
+          />
         </View>
 
         {/* Logout */}
