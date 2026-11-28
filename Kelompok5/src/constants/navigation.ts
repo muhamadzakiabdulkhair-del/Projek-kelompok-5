@@ -22,6 +22,7 @@ const OWNER_TABS: NavTab[] = [
   { key: "dashboard", label: "Dashboard", icon: "stats-chart-outline", iconActive: "stats-chart", href: "/admin/dashboard" },
   { key: "produk", label: "Produk", icon: "cube-outline", iconActive: "cube", href: "/kelola-produk" },
   { key: "laporan", label: "Laporan", icon: "document-text-outline", iconActive: "document-text", href: "/admin/laporan" },
+  { key: "ai", label: "AI", icon: "sparkles-outline", iconActive: "sparkles", href: "/admin/rekomendasi" },
   { key: "profil", label: "Profil", icon: "person-outline", iconActive: "person", href: "/profil" },
 ];
 

@@ -1,0 +1,8 @@
+{
+  "precision@5": 0.4000000000000001,
+  "recall@5": 1.0,
+  "n_test_users": 20,
+  "n_users": 22,
+  "n_items": 5,
+  "data_source": "k5_recommender/data.csv"
+}

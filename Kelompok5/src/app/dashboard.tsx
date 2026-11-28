@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomNav } from "@/components/bottom-nav";
 import { BrandLogo } from "@/components/brand-logo";
 import { EmptyState } from "@/components/empty-state";
+import { PenandaUsia } from "@/components/penanda-usia";
 import { ProductCard } from "@/components/product-card";
 import { SearchBar } from "@/components/search-bar";
 import { tabsForRole } from "@/constants/navigation";
@@ -166,6 +167,7 @@ export default function DashboardScreen() {
         </View>
 
         <View style={styles.searchWrap}>
+          <PenandaUsia />
           <SearchBar
             value={search}
             onChangeText={setSearch}

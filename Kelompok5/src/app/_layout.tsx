@@ -36,7 +36,8 @@ function tentukanTujuan(pathname: string, peran: Role | null): Href | null {
     p === "/admin/dashboard" ||
     p === "/admin/laporan" ||
     p === "/admin/karyawan" ||
-    p === "/admin/pelanggan";
+    p === "/admin/pelanggan" ||
+    p === "/admin/rekomendasi";
   const butuhStaf = p === "/kelola-produk";
   const butuhLogin = p === "/pesanan" || p === "/profil" || p === "/notifikasi";
   const butuhPelanggan = p === "/keranjang";
@@ -102,6 +103,7 @@ export default function RootLayout() {
               <Stack.Screen name="admin/laporan" />
               <Stack.Screen name="admin/karyawan" />
               <Stack.Screen name="admin/pelanggan" />
+              <Stack.Screen name="admin/rekomendasi" />
               <Stack.Screen name="login" />
               <Stack.Screen name="auth/callback" />
             </Stack>
