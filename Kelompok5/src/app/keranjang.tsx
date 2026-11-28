@@ -15,6 +15,7 @@ import { useDialog } from "@/components/app-dialog";
 import { BottomNav } from "@/components/bottom-nav";
 import { EmptyState } from "@/components/empty-state";
 import { QtyStepper } from "@/components/qty-stepper";
+import { DisclaimerUsia } from "@/components/penanda-usia";
 import { ScreenHeader } from "@/components/screen-header";
 import { tabsForRole } from "@/constants/navigation";
 import { useAuth } from "@/context/auth";
@@ -248,6 +249,8 @@ export default function KeranjangScreen() {
       </View>
 
       {/* Tombol checkout */}
+      <DisclaimerUsia />
+
       <AppButton
         label="Buat Pesanan"
         icon="checkmark-circle"
